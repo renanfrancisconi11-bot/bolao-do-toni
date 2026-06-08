@@ -12,54 +12,6 @@ export const PARTICIPANTES = [
   "Willian Colombo","Eduardo Apolinário"
 ];
 
-
-// Senha = número da camisa de cada um
-export const SENHAS = {
-  "Alan Milanez":          "91",
-  "Arthur Michels":        "9",
-  "Daniel Trevizani":      "32",
-  "Deimis Amboni":         "14",
-  "Eduardo Benner":        "25",
-  "Eduardo Bezerra":       "6",
-  "Eduardo Brunelli":      "0",
-  "Eduardo Trevizani":     "2",
-  "Gabriel Henrique":      "96",
-  "Guilherme Padilha":     "81",
-  "Hediel Bongiolo":       "90",
-  "Humberto Gava":         "4",
-  "Iago Sartor":           "97",
-  "Israel Farias":         "92",
-  "Itaci Netto":           "98",
-  "João Manoel":           "37",
-  "João Paulo Damiani":    "18",
-  "João Vitor Machado":    "21",
-  "Juninho Magagnin":      "17",
-  "Leonardo Simon":        "8",
-  "Lucas Beck":            "29",
-  "Lucas Dagô":            "13",
-  "Lucas Jorge":           "22",
-  "Luis Fernando A.":      "30",
-  "Luiz Felipe M.":        "11",
-  "Luiz Henrique Zanette": "20",
-  "Mateus Motta":          "50",
-  "Matheus Frasson":       "5",
-  "Matheus Marcelino":     "78",
-  "Mauricio Neves":        "23",
-  "Pedro Bolan":           "88",
-  "Pedro Vitor C.":        "7",
-  "Rafael Bezerra":        "3",
-  "Renan Francisconi":     "99",
-  "Ricardo Cizeski":       "26",
-  "Rodrigo Penteado":      "12",
-  "Tales Augusto":         "58",
-  "Ulysses da Luz":        "1",
-  "Vinicius Geremias":     "10",
-  "Vitor Presa":           "77",
-  "Willian Colombo":       "100",
-  "Eduardo Apolinário":    "999",
-  "Gustavo Vieira":        "101",
-};
-
 export const JOGOS = [
   // Fase de Grupos
   {id:1, rodada:"Grupos",data:"11/06",casa:"México",fora:"África do Sul",grupo:"A"},
@@ -192,22 +144,4 @@ export function calcularPontos(palcasa, palfora, rescasa, resfora, rodada) {
     return 1 * m;
   }
   return 0;
-}
-
-export function podeApostar(jogoHora) {
-  const agora = new Date();
-  const jogo = new Date(jogoHora + ":00-03:00");
-  return (jogo - agora) > 60 * 60 * 1000;
-}
-
-export function tempoRestante(jogoHora) {
-  const agora = new Date();
-  const jogo = new Date(jogoHora + ":00-03:00");
-  const diffMs = jogo - agora;
-  if (diffMs <= 0) return null;
-  const horas = Math.floor(diffMs / 3600000);
-  const min   = Math.floor((diffMs % 3600000) / 60000);
-  if (horas > 48) { const dias=Math.floor(horas/24); return `${dias}d ${horas%24}h`; }
-  if (horas > 0) return `${horas}h ${min}min`;
-  return `${min}min`;
 }

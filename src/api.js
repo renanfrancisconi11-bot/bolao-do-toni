@@ -1,7 +1,5 @@
 import { JOGOS } from "./jogos";
 
-const API_TOKEN = "2f31933ee37349bb95799a24a5701b83";
-
 // Mapa de nomes da API (inglês) → nomes do bolão (português)
 const NOMES = {
   "Germany":"Alemanha","Argentina":"Argentina","France":"França",
@@ -22,7 +20,6 @@ const NOMES = {
   "Haiti":"Haiti","Cape Verde":"Cabo Verde","Curaçao":"Curaçao",
   "Serbia":"Sérvia","Poland":"Polônia","Denmark":"Dinamarca",
   "Costa Rica":"Costa Rica","Venezuela":"Venezuela","Honduras":"Honduras",
-  "New Zealand":"Nova Zelândia","Bosnia-Herzegovina":"Bósnia-Herz.",
 };
 
 function norm(s) {
@@ -37,20 +34,18 @@ function encontrarJogo(homeApi, awayApi) {
   return JOGOS.find(j => {
     const c = norm(j.casa), f = norm(j.fora);
     return (c===h&&f===a)||(c===a&&f===h)||
-           (c.includes(h)||h.includes(c))&&(f.includes(a)||a.includes(f));
+           ((c.includes(h)||h.includes(c))&&(f.includes(a)||a.includes(f)));
   });
 }
 
 export async function buscarResultadosAPI() {
   try {
-    // Copa do Mundo 2026 — competition code WC, season 2026
-    const url = "https://api.football-data.org/v4/competitions/WC/matches?season=2026&status=FINISHED";
-    const res = await fetch(url, {
-      headers: { "X-Auth-Token": API_TOKEN }
-    });
+    // Chama a função serverless do Netlify (evita CORS)
+    const url = "/.netlify/functions/resultados";
+    const res = await fetch(url);
 
     if (!res.ok) {
-      console.warn("API erro:", res.status, await res.text());
+      console.warn("Função serverless retornou erro:", res.status);
       return null;
     }
 
@@ -64,15 +59,15 @@ export async function buscarResultadosAPI() {
       const awayScore = m.score?.fullTime?.away;
       if (homeScore == null || awayScore == null) return;
       const jogo = encontrarJogo(
-        m.homeTeam.name || m.homeTeam.shortName || "",
-        m.awayTeam.name || m.awayTeam.shortName || ""
+        m.homeTeam?.name || m.homeTeam?.shortName || "",
+        m.awayTeam?.name || m.awayTeam?.shortName || ""
       );
       if (jogo) resultados[jogo.id] = { casa: String(homeScore), fora: String(awayScore) };
     });
 
     return Object.keys(resultados).length > 0 ? resultados : null;
   } catch(err) {
-    console.warn("Erro API:", err);
+    console.warn("Erro ao buscar resultados:", err);
     return null;
   }
 }
