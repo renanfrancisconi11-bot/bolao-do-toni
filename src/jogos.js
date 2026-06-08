@@ -56,7 +56,7 @@ export const SENHAS = {
   "Vinicius Geremias":     "10",
   "Vitor Presa":           "77",
   "Willian Colombo":       "100",
-  "Eduardo Apolinário":    "apolinario2026",
+  "Eduardo Apolinário":    "999",
   "Gustavo Vieira":        "101",
 };
 

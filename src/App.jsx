@@ -1,27 +1,37 @@
 import { useState, useEffect, useCallback } from "react";
 import logo from "./logo.png";
-import { PARTICIPANTES, SENHAS, JOGOS, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
+import { PARTICIPANTES as PARTICIPANTES_BASE, SENHAS as SENHAS_BASE, JOGOS, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
 import { buscarResultadosAPI } from "./api";
 import "./App.css";
 
-const KEY_PALPITES    = "bolao_palpites";
-const KEY_RESULTADOS  = "bolao_resultados";
-const KEY_SESSION     = "bolao_session";
-const KEY_ADMIN       = "bolao_admin";
-const KEY_LAST_FETCH  = "bolao_last_fetch";
-const KEY_MINHAS_SENS = "bolao_minhas_senhas"; // { "Nome": "senha_custom" }
-const ADMIN_PWD       = "bdt2026admin";
-const FETCH_INTERVAL  = 5 * 60 * 1000;
+const KEY_PALPITES      = "bolao_palpites";
+const KEY_RESULTADOS    = "bolao_resultados";
+const KEY_SESSION       = "bolao_session";
+const KEY_ADMIN         = "bolao_admin";
+const KEY_LAST_FETCH    = "bolao_last_fetch";
+const KEY_MINHAS_SENS   = "bolao_minhas_senhas";
+const KEY_EXTRA_PARTS   = "bolao_extra_participantes"; // [{nome, senha}]
+const ADMIN_PWD         = "bdt2026admin";
+const FETCH_INTERVAL    = 5 * 60 * 1000;
 
 function loadStorage(key, def) {
   try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
 }
 
-// Verifica senha: primeiro tenta a custom, depois a padrão (camisa)
+// Lista completa de participantes (base + extras adicionados pelo admin)
+function getParticipantes() {
+  const extras = loadStorage(KEY_EXTRA_PARTS, []);
+  return [...PARTICIPANTES_BASE, ...extras.map(e => e.nome)];
+}
+
+// Verifica senha: custom > extra > base
 function verificarSenha(nome, senhaDigitada) {
   const customs = loadStorage(KEY_MINHAS_SENS, {});
   if (customs[nome]) return customs[nome] === senhaDigitada;
-  return SENHAS[nome] === senhaDigitada;
+  const extras = loadStorage(KEY_EXTRA_PARTS, []);
+  const extra = extras.find(e => e.nome === nome);
+  if (extra) return extra.senha === senhaDigitada;
+  return SENHAS_BASE[nome] === senhaDigitada;
 }
 
 function getRodadaIcon(r) {
@@ -29,7 +39,8 @@ function getRodadaIcon(r) {
 }
 
 function getRankingData(palpites, resultados) {
-  return PARTICIPANTES.map(nome => {
+  const participantes = getParticipantes();
+  return participantes.map(nome => {
     let total=0,exatos=0,acertos=0;
     JOGOS.forEach(j => {
       const pal=palpites[nome]?.[j.id];
@@ -73,6 +84,7 @@ function Header({view,setView,participante,setParticipante}) {
 // ── Hero ──────────────────────────────────────────────────────────────────────
 function Hero({setView,ranking}) {
   const top3=ranking.slice(0,3);
+  const total=getParticipantes().length;
   return (
     <section className="hero">
       <div className="hero-bg">
@@ -87,7 +99,7 @@ function Hero({setView,ranking}) {
           <span className="hero-title-accent">DO TONI</span><br/>
           <span className="hero-title-blue">2026</span>
         </h1>
-        <p className="hero-sub">43 participantes · 102 jogos · palpite até 1h antes de cada jogo</p>
+        <p className="hero-sub">{total} participantes · 102 jogos · palpite até 1h antes de cada jogo</p>
         <div className="hero-actions">
           <button className="btn-primary" onClick={()=>setView("ranking")}>Ver Ranking</button>
           <button className="btn-secondary" onClick={()=>setView("login")}>Fazer Palpites</button>
@@ -114,6 +126,7 @@ function LoginView({setParticipante,setView,participante}) {
   const [selected,setSelected]=useState("");
   const [senha,setSenha]=useState("");
   const [err,setErr]=useState("");
+  const participantes = getParticipantes();
 
   function handleLogin() {
     if(!selected){setErr("Selecione seu nome.");return;}
@@ -138,7 +151,7 @@ function LoginView({setParticipante,setView,participante}) {
         <p className="card-sub">Selecione seu nome e digite sua senha</p>
         <select className="select-input" value={selected} onChange={e=>{setSelected(e.target.value);setErr("");}}>
           <option value="">— Selecione seu nome —</option>
-          {PARTICIPANTES.map(n=><option key={n} value={n}>{n}</option>)}
+          {participantes.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
         <input className="select-input" type="password" placeholder="Sua senha"
           value={senha} onChange={e=>{setSenha(e.target.value);setErr("");}}
@@ -162,19 +175,17 @@ function TrocarSenhaView({setView}) {
   const [confirmar,setConfirmar]=useState("");
   const [err,setErr]=useState("");
   const [sucesso,setSucesso]=useState(false);
+  const participantes = getParticipantes();
 
   function handleTrocar() {
     if(!selected){setErr("Selecione seu nome.");return;}
     if(!senhaAtual){setErr("Digite sua senha atual.");return;}
     if(!verificarSenha(selected,senhaAtual)){setErr("Senha atual incorreta!");return;}
-    if(novaSenha.length<3){setErr("A nova senha precisa ter pelo menos 3 caracteres.");return;}
+    if(novaSenha.length<3){setErr("Nova senha precisa ter pelo menos 3 caracteres.");return;}
     if(novaSenha!==confirmar){setErr("As senhas não coincidem.");return;}
-
-    // Salva a nova senha custom
     const customs=loadStorage(KEY_MINHAS_SENS,{});
     customs[selected]=novaSenha;
     localStorage.setItem(KEY_MINHAS_SENS,JSON.stringify(customs));
-
     setSucesso(true);
     setTimeout(()=>setView("login"),2500);
   }
@@ -195,37 +206,25 @@ function TrocarSenhaView({setView}) {
         <img src={logo} alt="BDT" className="login-logo"/>
         <h2 className="card-title">🔑 Trocar Senha</h2>
         <p className="card-sub">Escolha uma senha pessoal para proteger sua conta</p>
-
         <select className="select-input" value={selected} onChange={e=>{setSelected(e.target.value);setErr("");}}>
           <option value="">— Selecione seu nome —</option>
-          {PARTICIPANTES.map(n=><option key={n} value={n}>{n}</option>)}
+          {participantes.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
-
-        <input className="select-input" type="password"
-          placeholder="Senha atual (número da camisa)"
+        <input className="select-input" type="password" placeholder="Senha atual (número da camisa)"
           value={senhaAtual} onChange={e=>{setSenhaAtual(e.target.value);setErr("");}}/>
-
         <div className="divider-line"/>
-
-        <input className="select-input" type="password"
-          placeholder="Nova senha (mínimo 3 caracteres)"
+        <input className="select-input" type="password" placeholder="Nova senha (mínimo 3 caracteres)"
           value={novaSenha} onChange={e=>{setNovaSenha(e.target.value);setErr("");}}/>
-
-        <input className="select-input" type="password"
-          placeholder="Confirmar nova senha"
+        <input className="select-input" type="password" placeholder="Confirmar nova senha"
           value={confirmar} onChange={e=>{setConfirmar(e.target.value);setErr("");}}
           onKeyDown={e=>e.key==="Enter"&&handleTrocar()}/>
-
         {err&&<p className="error-msg">⚠️ {err}</p>}
-
         <button className="btn-primary btn-full" onClick={handleTrocar}
           disabled={!selected||!senhaAtual||!novaSenha||!confirmar}>
           Salvar nova senha
         </button>
-        <button className="btn-ghost btn-full" onClick={()=>setView("login")}>
-          ← Voltar
-        </button>
-        <p className="senha-hint">⚠️ Guarde bem sua nova senha — só você sabe!</p>
+        <button className="btn-ghost btn-full" onClick={()=>setView("login")}>← Voltar</button>
+        <p className="senha-hint">⚠️ Guarde bem sua nova senha!</p>
       </div>
     </div>
   );
@@ -239,9 +238,7 @@ function RankingView({ranking,resultados,ultimaAtualizacao}) {
       <div className="section-header">
         <div>
           <h2 className="section-title">🏅 Ranking</h2>
-          {ultimaAtualizacao&&(
-            <p className="section-sub">Atualizado às {ultimaAtualizacao} · {jogosApurados} jogos apurados</p>
-          )}
+          {ultimaAtualizacao&&<p className="section-sub">Atualizado às {ultimaAtualizacao} · {jogosApurados} jogos apurados</p>}
         </div>
         <span className="section-badge">{jogosApurados} jogos apurados</span>
       </div>
@@ -284,16 +281,12 @@ function RankingView({ranking,resultados,ultimaAtualizacao}) {
 function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView}) {
   const [rodadaFiltro,setRodadaFiltro]=useState("Grupos");
   const [saved,setSaved]=useState(false);
-
   const customs=loadStorage(KEY_MINHAS_SENS,{});
   const temSenhaCustom=!!customs[participante];
-
   const rodadas=[...new Set(JOGOS.map(j=>j.rodada))];
   const jogosFiltrados=JOGOS.filter(j=>j.rodada===rodadaFiltro);
   const myPal=palpites[participante]||{};
-  const totalPreenchidos=JOGOS.filter(j=>{
-    const p=myPal[j.id]; return p&&p.casa!==""&&p.fora!=="";
-  }).length;
+  const totalPreenchidos=JOGOS.filter(j=>{const p=myPal[j.id];return p&&p.casa!==""&&p.fora!=="";}).length;
 
   function handlePalpite(jogoId,campo,valor,jogoHora) {
     if(!podeApostar(jogoHora)) return;
@@ -329,23 +322,19 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
         </div>
         <div className="header-actions">
           {!temSenhaCustom&&(
-            <button className="btn-trocar-senha" onClick={()=>setView("trocar-senha")} title="Defina sua senha pessoal">
-              🔑 Criar senha
-            </button>
+            <button className="btn-trocar-senha" onClick={()=>setView("trocar-senha")}>🔑 Criar senha</button>
           )}
           <button className={`btn-save ${saved?"saved":""}`} onClick={salvar}>
             {saved?"✓ Salvo!":"💾 Salvar"}
           </button>
         </div>
       </div>
-
       {!temSenhaCustom&&(
         <div className="aviso-senha">
           🔒 <strong>Crie sua senha pessoal!</strong> Qualquer pessoa que saiba seu número de camisa pode acessar sua conta.
           <button className="aviso-btn" onClick={()=>setView("trocar-senha")}>Criar senha agora →</button>
         </div>
       )}
-
       <div className="progress-bar">
         <div className="progress-fill" style={{width:`${(totalPreenchidos/JOGOS.length)*100}%`}}/>
       </div>
@@ -378,12 +367,10 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
                 <span className="jogo-time jogo-casa">{jogo.casa}</span>
                 <div className="jogo-placar">
                   <input className="placar-input" type="text" inputMode="numeric" maxLength={2}
-                    value={pal.casa} onChange={e=>handlePalpite(jogo.id,"casa",e.target.value,jogo.hora)}
-                    placeholder="–" disabled={!pode}/>
+                    value={pal.casa} onChange={e=>handlePalpite(jogo.id,"casa",e.target.value,jogo.hora)} placeholder="–" disabled={!pode}/>
                   <span className="placar-x">×</span>
                   <input className="placar-input" type="text" inputMode="numeric" maxLength={2}
-                    value={pal.fora} onChange={e=>handlePalpite(jogo.id,"fora",e.target.value,jogo.hora)}
-                    placeholder="–" disabled={!pode}/>
+                    value={pal.fora} onChange={e=>handlePalpite(jogo.id,"fora",e.target.value,jogo.hora)} placeholder="–" disabled={!pode}/>
                 </div>
                 <span className="jogo-time jogo-fora">{jogo.fora}</span>
               </div>
@@ -405,11 +392,114 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
   );
 }
 
+// ── Admin Panel ───────────────────────────────────────────────────────────────
+function AdminPanel({setView}) {
+  const [extras, setExtras] = useState(()=>loadStorage(KEY_EXTRA_PARTS,[]));
+  const [novoNome, setNovoNome] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [err, setErr] = useState("");
+  const [sucesso, setSucesso] = useState("");
+
+  const todosParticipantes = getParticipantes();
+
+  function adicionarParticipante() {
+    const nome = novoNome.trim();
+    const senha = novaSenha.trim();
+    if(!nome){setErr("Digite o nome.");return;}
+    if(!senha){setErr("Digite a senha.");return;}
+    if(todosParticipantes.includes(nome)){setErr("Esse nome já existe!");return;}
+    const novos = [...extras, {nome, senha}];
+    localStorage.setItem(KEY_EXTRA_PARTS, JSON.stringify(novos));
+    setExtras(novos);
+    setNovoNome(""); setNovaSenha(""); setErr("");
+    setSucesso(`✅ ${nome} adicionado com sucesso!`);
+    setTimeout(()=>setSucesso(""),3000);
+  }
+
+  function removerParticipante(nome) {
+    if(!window.confirm(`Remover ${nome}?`)) return;
+    const novos = extras.filter(e=>e.nome!==nome);
+    localStorage.setItem(KEY_EXTRA_PARTS, JSON.stringify(novos));
+    setExtras(novos);
+  }
+
+  function resetarSenha(nome) {
+    const customs = loadStorage(KEY_MINHAS_SENS, {});
+    delete customs[nome];
+    localStorage.setItem(KEY_MINHAS_SENS, JSON.stringify(customs));
+    setSucesso(`🔑 Senha de ${nome.split(" ")[0]} resetada para o padrão!`);
+    setTimeout(()=>setSucesso(""),3000);
+  }
+
+  return (
+    <div className="view-container">
+      <div className="section-header">
+        <h2 className="section-title">⚙️ Painel Admin</h2>
+        <button className="btn-ghost" onClick={()=>setView("ranking")}>← Voltar</button>
+      </div>
+
+      {/* Adicionar participante */}
+      <div className="admin-card">
+        <h3 className="admin-card-title">➕ Adicionar Participante</h3>
+        <div className="admin-form">
+          <input className="select-input" type="text" placeholder="Nome completo"
+            value={novoNome} onChange={e=>{setNovoNome(e.target.value);setErr("");}}/>
+          <input className="select-input" type="text" placeholder="Senha inicial (ex: número da camisa)"
+            value={novaSenha} onChange={e=>{setNovaSenha(e.target.value);setErr("");}}
+            onKeyDown={e=>e.key==="Enter"&&adicionarParticipante()}/>
+          {err&&<p className="error-msg">⚠️ {err}</p>}
+          {sucesso&&<p className="sucesso-msg">{sucesso}</p>}
+          <button className="btn-primary" onClick={adicionarParticipante}>Adicionar</button>
+        </div>
+      </div>
+
+      {/* Lista de participantes extras */}
+      {extras.length > 0 && (
+        <div className="admin-card">
+          <h3 className="admin-card-title">👥 Participantes Adicionados por Você</h3>
+          <div className="admin-lista">
+            {extras.map(e=>(
+              <div key={e.nome} className="admin-item">
+                <span className="admin-item-nome">{e.nome}</span>
+                <span className="admin-item-senha">senha: {e.senha}</span>
+                <button className="admin-item-btn" onClick={()=>removerParticipante(e.nome)}>🗑️ Remover</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lista completa com reset de senha */}
+      <div className="admin-card">
+        <h3 className="admin-card-title">🔑 Resetar Senha de Participante</h3>
+        <p className="admin-card-sub">Use para quando alguém esquecer a senha. Volta para o padrão (número da camisa).</p>
+        <div className="admin-lista">
+          {todosParticipantes.map(nome=>{
+            const customs=loadStorage(KEY_MINHAS_SENS,{});
+            const temCustom=!!customs[nome];
+            return (
+              <div key={nome} className="admin-item">
+                <span className="admin-item-nome">{nome}</span>
+                <span className={`admin-item-status ${temCustom?"custom":"padrao"}`}>
+                  {temCustom?"🔒 senha custom":"🔓 senha padrão"}
+                </span>
+                {temCustom&&(
+                  <button className="admin-item-btn reset" onClick={()=>resetarSenha(nome)}>↺ Resetar</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Admin Login ───────────────────────────────────────────────────────────────
 function AdminLogin({setIsAdmin,setView}) {
   const [pwd,setPwd]=useState(""); const [err,setErr]=useState(false);
   function login() {
-    if(pwd===ADMIN_PWD){localStorage.setItem(KEY_ADMIN,"true");setIsAdmin(true);setView("ranking");}
+    if(pwd===ADMIN_PWD){localStorage.setItem(KEY_ADMIN,"true");setIsAdmin(true);setView("admin-panel");}
     else{setErr(true);setTimeout(()=>setErr(false),2000);}
   }
   return (
@@ -490,6 +580,7 @@ export default function App() {
         {view==="login"&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante}/>}
         {view==="trocar-senha"&&<TrocarSenhaView setView={setView}/>}
         {view==="ranking"&&<RankingView ranking={ranking} resultados={resultados} ultimaAtualizacao={ultimaAtualizacao}/>}
+        {view==="admin-panel"&&isAdmin&&<AdminPanel setView={setView}/>}
         {(view==="palpites"&&participante)&&(
           <PalpitesView participante={participante} palpites={palpites} setPalpites={setPalpites}
             resultados={resultados} isAdmin={isAdmin} setResultados={setResultados} setView={setView}/>
@@ -497,7 +588,15 @@ export default function App() {
         {(view==="palpites"&&!participante)&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante}/>}
       </main>
       <footer className="footer">
-        <span>Bolão do Toni · Copa 2026 {isAdmin&&<span className="admin-badge" onClick={()=>{localStorage.removeItem(KEY_ADMIN);setIsAdmin(false);}}>⚙️ Admin (sair)</span>}</span>
+        <span>
+          Bolão do Toni · Copa 2026
+          {isAdmin&&(
+            <>
+              <span className="admin-badge" onClick={()=>setView("admin-panel")}>⚙️ Painel Admin</span>
+              <span className="admin-badge" style={{marginLeft:6}} onClick={()=>{localStorage.removeItem(KEY_ADMIN);setIsAdmin(false);}}>Sair</span>
+            </>
+          )}
+        </span>
         <span onClick={handleLogoClick} style={{cursor:"default",userSelect:"none"}}>🏆</span>
       </footer>
     </div>

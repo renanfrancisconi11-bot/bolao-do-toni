@@ -323,3 +323,36 @@ body {
   .hero-title { font-size: 58px; }
   .jogo-time { font-size: 12px; }
 }
+
+/* ── Admin Panel ────────────────────────────────────────────────────────── */
+.admin-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px;
+}
+.admin-card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+.admin-card-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+.admin-form { display: flex; flex-direction: column; gap: 12px; }
+.sucesso-msg { color: var(--green); font-size: 13px; font-weight: 600; }
+.admin-lista { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+.admin-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  flex-wrap: wrap;
+}
+.admin-item-nome { flex: 1; font-size: 14px; font-weight: 600; min-width: 150px; }
+.admin-item-senha { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); }
+.admin-item-status { font-size: 12px; padding: 2px 8px; border-radius: 100px; }
+.admin-item-status.custom { background: rgba(0,200,83,0.12); color: var(--green); }
+.admin-item-status.padrao { background: rgba(255,255,255,0.05); color: var(--text3); }
+.admin-item-btn {
+  background: rgba(255,68,68,0.1); color: var(--red);
+  border: 1px solid rgba(255,68,68,0.2); padding: 5px 10px; border-radius: 8px;
+  font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.admin-item-btn:hover { background: rgba(255,68,68,0.2); }
+.admin-item-btn.reset {
+  background: rgba(245,208,0,0.1); color: var(--accent);
+  border-color: rgba(245,208,0,0.25);
+}
+.admin-item-btn.reset:hover { background: rgba(245,208,0,0.2); }
