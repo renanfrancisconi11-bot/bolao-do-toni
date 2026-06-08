@@ -1,20 +1,18 @@
 /* ── Variables ──────────────────────────────────────────────────────────── */
 :root {
-  --bg:        #071a0e;
-  --bg2:       #0d2a18;
-  --bg3:       #123520;
-  --border:    #1a4a28;
-  --border2:   #256335;
-  --text:      #f5f0dc;
-  --text2:     #a8c89a;
-  --text3:     #5a8a60;
-  --accent:    #f5d000;
-  --accent2:   #e0b800;
-  --gold:      #f5d000;
-  --gold2:     #e0b800;
-  --blue:      #1a3a8a;
-  --blue2:     #2a50b0;
-  --green:     #00c853;
+  --bg:        #07111f;
+  --bg2:       #0d1e33;
+  --bg3:       #132740;
+  --border:    #1e3a58;
+  --border2:   #2a4f73;
+  --text:      #e8f4ff;
+  --text2:     #7aaed4;
+  --text3:     #4a7a9b;
+  --accent:    #00d4ff;
+  --accent2:   #0099cc;
+  --gold:      #ffd700;
+  --gold2:     #ffb800;
+  --green:     #00e676;
   --red:       #ff4444;
   --orange:    #ff9800;
   --radius:    12px;
@@ -40,27 +38,27 @@ body {
 /* ── Header ─────────────────────────────────────────────────────────────── */
 .header {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(7,26,14,0.95);
+  background: rgba(7,17,31,0.92);
   backdrop-filter: blur(16px);
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 1px solid var(--border);
 }
 .header-inner {
   max-width: 1100px; margin: 0 auto;
   padding: 0 20px;
-  height: 64px;
+  height: 60px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .logo {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px;
   cursor: pointer; user-select: none;
 }
-.logo-img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+.logo-icon { font-size: 22px; }
 .logo-text {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 20px; letter-spacing: 2px;
-  color: var(--text); line-height: 1.1;
+  font-size: 22px; letter-spacing: 2px;
+  color: var(--text);
 }
-.logo-sub { font-size: 10px; color: var(--accent); letter-spacing: 1.5px; display: block; }
+.logo-year { color: var(--accent); margin-left: 4px; }
 .nav { display: flex; align-items: center; gap: 6px; }
 .nav-btn {
   background: none; border: 1px solid transparent;
@@ -79,7 +77,7 @@ body {
 .nav-btn-user.logged {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(245,208,0,0.08);
+  background: rgba(0,212,255,0.08);
 }
 
 /* ── Hero ───────────────────────────────────────────────────────────────── */
@@ -92,23 +90,23 @@ body {
 .hero-bg { position: absolute; inset: 0; z-index: 0; }
 .hero-orb {
   position: absolute; border-radius: 50%;
-  filter: blur(80px); opacity: 0.18;
+  filter: blur(80px); opacity: 0.15;
 }
 .hero-orb-1 {
   width: 500px; height: 500px;
-  background: radial-gradient(circle, #f5d000, transparent);
+  background: radial-gradient(circle, #00d4ff, transparent);
   top: -100px; left: -100px;
 }
 .hero-orb-2 {
   width: 400px; height: 400px;
-  background: radial-gradient(circle, #1a3a8a, transparent);
+  background: radial-gradient(circle, #ffd700, transparent);
   bottom: -80px; right: -80px;
 }
 .hero-grid {
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(245,208,0,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245,208,0,0.04) 1px, transparent 1px);
+    linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 .hero-content {
@@ -116,9 +114,9 @@ body {
   max-width: 1100px; margin: 0 auto; width: 100%;
 }
 .hero-badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: rgba(245,208,0,0.12);
-  border: 1px solid rgba(245,208,0,0.35);
+  display: inline-block;
+  background: rgba(0,212,255,0.12);
+  border: 1px solid rgba(0,212,255,0.3);
   color: var(--accent);
   font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
   padding: 6px 14px; border-radius: 100px;
@@ -126,24 +124,23 @@ body {
 }
 .hero-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(56px, 11vw, 100px);
+  font-size: clamp(60px, 12vw, 110px);
   line-height: 0.9;
   letter-spacing: 2px;
   margin-bottom: 16px;
 }
 .hero-title-accent { color: var(--accent); }
-.hero-title-blue { color: #5580e0; }
 .hero-sub { color: var(--text2); font-size: 16px; margin-bottom: 32px; }
 .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
 /* ── Buttons ────────────────────────────────────────────────────────────── */
 .btn-primary {
-  background: var(--accent); color: #071a0e;
+  background: var(--accent); color: #000;
   border: none; padding: 12px 28px; border-radius: 10px;
-  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 800;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
   cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
 }
-.btn-primary:hover { background: #ffe033; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(245,208,0,0.35); }
+.btn-primary:hover { background: #33deff; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,212,255,0.35); }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 .btn-full { width: 100%; }
 .btn-secondary {
@@ -167,24 +164,23 @@ body {
   cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .btn-save:hover { border-color: var(--accent); color: var(--accent); }
-.btn-save.saved { background: rgba(0,200,83,0.15); border-color: var(--green); color: var(--green); }
+.btn-save.saved { background: rgba(0,230,118,0.15); border-color: var(--green); color: var(--green); }
 
 /* ── Hero Podium ────────────────────────────────────────────────────────── */
 .hero-podium {
   position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
   z-index: 1;
-  background: rgba(13,42,24,0.85); border: 1px solid var(--border2);
+  background: rgba(13,30,51,0.8); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 20px 24px;
   backdrop-filter: blur(12px);
-  min-width: 210px;
-  border-top: 3px solid var(--accent);
+  min-width: 200px;
 }
 .podium-label { font-size: 11px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
 .podium-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .podium-item:last-child { border-bottom: none; }
 .podium-medal { font-size: 18px; }
 .podium-name { flex: 1; font-size: 14px; font-weight: 600; }
-.podium-pts { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); font-weight: 700; }
+.podium-pts { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--gold); }
 
 /* ── View Container ─────────────────────────────────────────────────────── */
 .view-container {
@@ -205,7 +201,6 @@ body {
 .card-icon { font-size: 40px; }
 .card-title { font-size: 24px; font-weight: 700; }
 .card-sub { color: var(--text2); font-size: 15px; line-height: 1.5; }
-.login-logo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto; border: 3px solid var(--accent); }
 
 /* ── Select / Input ─────────────────────────────────────────────────────── */
 .select-input {
@@ -224,10 +219,10 @@ body {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
 }
-.section-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1.5px; color: var(--text); }
+.section-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 1.5px; }
 .section-sub { color: var(--text2); font-size: 14px; margin-top: 2px; }
 .section-badge {
-  background: rgba(245,208,0,0.1); border: 1px solid rgba(245,208,0,0.3);
+  background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.25);
   color: var(--accent); font-size: 12px; font-weight: 600;
   padding: 6px 12px; border-radius: 100px; white-space: nowrap;
   margin-top: 6px;
@@ -238,7 +233,6 @@ body {
   background: var(--bg2); border: 1px solid var(--border);
   border-radius: var(--radius-lg); overflow: hidden;
   margin-bottom: 28px;
-  border-top: 3px solid var(--accent);
 }
 .ranking-header {
   display: grid; grid-template-columns: 50px 1fr 70px 80px 80px;
@@ -254,7 +248,7 @@ body {
 }
 .ranking-row:last-child { border-bottom: none; }
 .ranking-row:hover { background: var(--bg3); }
-.rank-1 { background: rgba(245,208,0,0.08); }
+.rank-1 { background: rgba(255,215,0,0.06); }
 .rank-2 { background: rgba(192,192,192,0.05); }
 .rank-3 { background: rgba(205,127,50,0.05); }
 .rank-pos { font-size: 18px; font-weight: 700; }
@@ -277,7 +271,7 @@ body {
 .legenda-fase { font-size: 14px; font-weight: 600; }
 .legenda-pts { font-size: 13px; color: var(--text2); }
 .pts-exact { color: var(--gold); font-weight: 700; }
-.pts-saldo { color: #5580e0; font-weight: 600; }
+.pts-saldo { color: var(--accent); font-weight: 600; }
 .pts-winner { color: var(--green); font-weight: 600; }
 
 /* ── Progress Bar ───────────────────────────────────────────────────────── */
@@ -286,7 +280,7 @@ body {
   border-radius: 100px; margin-bottom: 24px; overflow: hidden;
 }
 .progress-fill {
-  height: 100%; background: linear-gradient(90deg, var(--green), var(--accent));
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold));
   border-radius: 100px; transition: width 0.4s;
 }
 
@@ -302,10 +296,9 @@ body {
 }
 .rodada-tab:hover { border-color: var(--border2); color: var(--text); }
 .rodada-tab.active {
-  background: rgba(245,208,0,0.12);
-  border-color: rgba(245,208,0,0.5);
+  background: rgba(0,212,255,0.12);
+  border-color: rgba(0,212,255,0.4);
   color: var(--accent);
-  font-weight: 700;
 }
 
 /* ── Jogos List ─────────────────────────────────────────────────────────── */
@@ -332,7 +325,7 @@ body {
   font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700;
   padding: 2px 8px; border-radius: 100px;
 }
-.jogo-pts.pts-pos { background: rgba(0,200,83,0.15); color: var(--green); }
+.jogo-pts.pts-pos { background: rgba(0,230,118,0.15); color: var(--green); }
 .jogo-pts.pts-zero { background: rgba(255,68,68,0.12); color: var(--red); }
 .jogo-body {
   display: flex; align-items: center; gap: 12px;
@@ -385,21 +378,62 @@ body {
   .ranking-header { grid-template-columns: 50px 1fr 70px; }
   .ranking-row { grid-template-columns: 50px 1fr 70px; }
   .hero-podium { display: none; }
-  .hero-title { font-size: 58px; }
+  .hero-title { font-size: 64px; }
   .jogo-time { font-size: 12px; }
 }
 
-/* ── Lock / Tempo styles ────────────────────────────────────────────────── */
-.jogo-card.locked { opacity: 0.7; }
-.jogo-card.locked .placar-input { opacity: 0.45; cursor: not-allowed; background: var(--bg); }
-.jogo-locked {
-  margin-left: auto; font-size: 11px; color: var(--text3);
-  background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.2);
+/* ── Fetch banner ───────────────────────────────────────────────────────── */
+.fetch-banner {
+  background: rgba(245,208,0,0.12); border-bottom: 1px solid rgba(245,208,0,0.25);
+  color: var(--accent); text-align: center;
+  font-size: 13px; font-weight: 500; padding: 8px;
+}
+.jogo-resultado-badge {
+  font-size: 11px; font-weight: 700; color: var(--green);
+  background: rgba(0,200,83,0.12); border: 1px solid rgba(0,200,83,0.25);
   padding: 2px 8px; border-radius: 100px;
 }
-.jogo-tempo {
-  font-size: 11px; color: var(--green); font-weight: 600;
-  background: rgba(0,200,83,0.1); border: 1px solid rgba(0,200,83,0.2);
-  padding: 2px 8px; border-radius: 100px;
+
+/* ── Trocar Senha ───────────────────────────────────────────────────────── */
+.link-trocar {
+  color: var(--accent); cursor: pointer; text-decoration: underline;
+  font-weight: 600;
 }
-.senha-hint { font-size: 12px; color: var(--text3); margin-top: -4px; }
+.link-trocar:hover { color: var(--gold2); }
+
+.divider-line {
+  width: 100%; height: 1px; background: var(--border);
+  margin: 4px 0;
+}
+
+.header-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+.btn-trocar-senha {
+  background: rgba(245,208,0,0.1); color: var(--accent);
+  border: 1px solid rgba(245,208,0,0.35); padding: 9px 14px;
+  border-radius: 10px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-trocar-senha:hover {
+  background: rgba(245,208,0,0.2); border-color: var(--accent);
+}
+
+.aviso-senha {
+  background: rgba(245,208,0,0.08);
+  border: 1px solid rgba(245,208,0,0.3);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius); padding: 14px 16px;
+  font-size: 14px; color: var(--text2);
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.aviso-btn {
+  background: var(--accent); color: #071a0e;
+  border: none; padding: 7px 14px; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap; margin-left: auto;
+}
+.aviso-btn:hover { background: var(--gold2); }

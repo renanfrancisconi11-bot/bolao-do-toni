@@ -1,16 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import logo from "./logo.png";
 import { PARTICIPANTES, SENHAS, JOGOS, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
+import { buscarResultadosAPI } from "./api";
 import "./App.css";
 
-const KEY_PALPITES   = "bolao_palpites";
-const KEY_RESULTADOS = "bolao_resultados";
-const KEY_SESSION    = "bolao_session";
-const KEY_ADMIN      = "bolao_admin";
-const ADMIN_PWD      = "bdt2026admin";
+const KEY_PALPITES    = "bolao_palpites";
+const KEY_RESULTADOS  = "bolao_resultados";
+const KEY_SESSION     = "bolao_session";
+const KEY_ADMIN       = "bolao_admin";
+const KEY_LAST_FETCH  = "bolao_last_fetch";
+const KEY_MINHAS_SENS = "bolao_minhas_senhas"; // { "Nome": "senha_custom" }
+const ADMIN_PWD       = "bdt2026admin";
+const FETCH_INTERVAL  = 5 * 60 * 1000;
 
 function loadStorage(key, def) {
   try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
+}
+
+// Verifica senha: primeiro tenta a custom, depois a padrão (camisa)
+function verificarSenha(nome, senhaDigitada) {
+  const customs = loadStorage(KEY_MINHAS_SENS, {});
+  if (customs[nome]) return customs[nome] === senhaDigitada;
+  return SENHAS[nome] === senhaDigitada;
 }
 
 function getRodadaIcon(r) {
@@ -35,7 +46,7 @@ function getRankingData(palpites, resultados) {
   }).sort((a,b)=>b.total-a.total||b.exatos-a.exatos||a.nome.localeCompare(b.nome));
 }
 
-// ── Header ───────────────────────────────────────────────────────────────────
+// ── Header ────────────────────────────────────────────────────────────────────
 function Header({view,setView,participante,setParticipante}) {
   return (
     <header className="header">
@@ -49,9 +60,9 @@ function Header({view,setView,participante,setParticipante}) {
         </div>
         <nav className="nav">
           <button className={`nav-btn ${view==="ranking"?"active":""}`} onClick={()=>setView("ranking")}>Ranking</button>
-          {participante && <button className={`nav-btn ${view==="palpites"?"active":""}`} onClick={()=>setView("palpites")}>Palpites</button>}
+          {participante&&<button className={`nav-btn ${view==="palpites"?"active":""}`} onClick={()=>setView("palpites")}>Palpites</button>}
           <button className={`nav-btn nav-btn-user ${participante?"logged":""}`} onClick={()=>setView("login")}>
-            {participante ? `👤 ${participante.split(" ")[0]}` : "Entrar"}
+            {participante?`👤 ${participante.split(" ")[0]}`:"Entrar"}
           </button>
         </nav>
       </div>
@@ -59,9 +70,9 @@ function Header({view,setView,participante,setParticipante}) {
   );
 }
 
-// ── Hero ─────────────────────────────────────────────────────────────────────
+// ── Hero ──────────────────────────────────────────────────────────────────────
 function Hero({setView,ranking}) {
-  const top3 = ranking.slice(0,3);
+  const top3=ranking.slice(0,3);
   return (
     <section className="hero">
       <div className="hero-bg">
@@ -76,7 +87,7 @@ function Hero({setView,ranking}) {
           <span className="hero-title-accent">DO TONI</span><br/>
           <span className="hero-title-blue">2026</span>
         </h1>
-        <p className="hero-sub">42 participantes · 102 jogos · palpite até 1h antes de cada jogo</p>
+        <p className="hero-sub">43 participantes · 102 jogos · palpite até 1h antes de cada jogo</p>
         <div className="hero-actions">
           <button className="btn-primary" onClick={()=>setView("ranking")}>Ver Ranking</button>
           <button className="btn-secondary" onClick={()=>setView("login")}>Fazer Palpites</button>
@@ -107,8 +118,8 @@ function LoginView({setParticipante,setView,participante}) {
   function handleLogin() {
     if(!selected){setErr("Selecione seu nome.");return;}
     if(!senha){setErr("Digite sua senha.");return;}
-    if(SENHAS[selected]!==senha){setErr("Senha incorreta! Fale com o organizador.");return;}
-    localStorage.setItem(KEY_SESSION, JSON.stringify({nome:selected}));
+    if(!verificarSenha(selected,senha)){setErr("Senha incorreta! Fale com o Toni.");return;}
+    localStorage.setItem(KEY_SESSION,JSON.stringify({nome:selected}));
     setParticipante(selected);
     setView("palpites");
   }
@@ -124,37 +135,114 @@ function LoginView({setParticipante,setView,participante}) {
       <div className="card login-card">
         <img src={logo} alt="BDT" className="login-logo"/>
         <h2 className="card-title">Entrar no Bolão</h2>
-        <p className="card-sub">Selecione seu nome e digite sua senha para acessar seus palpites</p>
+        <p className="card-sub">Selecione seu nome e digite sua senha</p>
         <select className="select-input" value={selected} onChange={e=>{setSelected(e.target.value);setErr("");}}>
           <option value="">— Selecione seu nome —</option>
           {PARTICIPANTES.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
-        <input
-          className="select-input"
-          type="password"
-          placeholder="Sua senha"
-          value={senha}
-          onChange={e=>{setSenha(e.target.value);setErr("");}}
-          onKeyDown={e=>e.key==="Enter"&&handleLogin()}
-        />
+        <input className="select-input" type="password" placeholder="Sua senha"
+          value={senha} onChange={e=>{setSenha(e.target.value);setErr("");}}
+          onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
         {err&&<p className="error-msg">⚠️ {err}</p>}
         <button className="btn-primary btn-full" onClick={handleLogin} disabled={!selected||!senha}>
-          Entrar e fazer palpites →
+          Entrar →
         </button>
         {participante&&<button className="btn-ghost btn-full" onClick={handleLogout}>Sair ({participante.split(" ")[0]})</button>}
-        <p className="senha-hint">Não sabe sua senha? Fale com o Toni 😄</p>
+        <p className="senha-hint">Senha padrão = número da sua camisa · <span className="link-trocar" onClick={()=>setView("trocar-senha")}>Trocar senha</span></p>
+      </div>
+    </div>
+  );
+}
+
+// ── Trocar Senha ──────────────────────────────────────────────────────────────
+function TrocarSenhaView({setView}) {
+  const [selected,setSelected]=useState("");
+  const [senhaAtual,setSenhaAtual]=useState("");
+  const [novaSenha,setNovaSenha]=useState("");
+  const [confirmar,setConfirmar]=useState("");
+  const [err,setErr]=useState("");
+  const [sucesso,setSucesso]=useState(false);
+
+  function handleTrocar() {
+    if(!selected){setErr("Selecione seu nome.");return;}
+    if(!senhaAtual){setErr("Digite sua senha atual.");return;}
+    if(!verificarSenha(selected,senhaAtual)){setErr("Senha atual incorreta!");return;}
+    if(novaSenha.length<3){setErr("A nova senha precisa ter pelo menos 3 caracteres.");return;}
+    if(novaSenha!==confirmar){setErr("As senhas não coincidem.");return;}
+
+    // Salva a nova senha custom
+    const customs=loadStorage(KEY_MINHAS_SENS,{});
+    customs[selected]=novaSenha;
+    localStorage.setItem(KEY_MINHAS_SENS,JSON.stringify(customs));
+
+    setSucesso(true);
+    setTimeout(()=>setView("login"),2500);
+  }
+
+  if(sucesso) return (
+    <div className="view-container">
+      <div className="card login-card">
+        <div className="card-icon">✅</div>
+        <h2 className="card-title">Senha alterada!</h2>
+        <p className="card-sub">Sua nova senha foi salva. Redirecionando...</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="view-container">
+      <div className="card login-card">
+        <img src={logo} alt="BDT" className="login-logo"/>
+        <h2 className="card-title">🔑 Trocar Senha</h2>
+        <p className="card-sub">Escolha uma senha pessoal para proteger sua conta</p>
+
+        <select className="select-input" value={selected} onChange={e=>{setSelected(e.target.value);setErr("");}}>
+          <option value="">— Selecione seu nome —</option>
+          {PARTICIPANTES.map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
+
+        <input className="select-input" type="password"
+          placeholder="Senha atual (número da camisa)"
+          value={senhaAtual} onChange={e=>{setSenhaAtual(e.target.value);setErr("");}}/>
+
+        <div className="divider-line"/>
+
+        <input className="select-input" type="password"
+          placeholder="Nova senha (mínimo 3 caracteres)"
+          value={novaSenha} onChange={e=>{setNovaSenha(e.target.value);setErr("");}}/>
+
+        <input className="select-input" type="password"
+          placeholder="Confirmar nova senha"
+          value={confirmar} onChange={e=>{setConfirmar(e.target.value);setErr("");}}
+          onKeyDown={e=>e.key==="Enter"&&handleTrocar()}/>
+
+        {err&&<p className="error-msg">⚠️ {err}</p>}
+
+        <button className="btn-primary btn-full" onClick={handleTrocar}
+          disabled={!selected||!senhaAtual||!novaSenha||!confirmar}>
+          Salvar nova senha
+        </button>
+        <button className="btn-ghost btn-full" onClick={()=>setView("login")}>
+          ← Voltar
+        </button>
+        <p className="senha-hint">⚠️ Guarde bem sua nova senha — só você sabe!</p>
       </div>
     </div>
   );
 }
 
 // ── Ranking ───────────────────────────────────────────────────────────────────
-function RankingView({ranking,resultados}) {
+function RankingView({ranking,resultados,ultimaAtualizacao}) {
   const jogosApurados=Object.keys(resultados).length;
   return (
     <div className="view-container">
       <div className="section-header">
-        <h2 className="section-title">🏅 Ranking</h2>
+        <div>
+          <h2 className="section-title">🏅 Ranking</h2>
+          {ultimaAtualizacao&&(
+            <p className="section-sub">Atualizado às {ultimaAtualizacao} · {jogosApurados} jogos apurados</p>
+          )}
+        </div>
         <span className="section-badge">{jogosApurados} jogos apurados</span>
       </div>
       <div className="ranking-table">
@@ -193,22 +281,18 @@ function RankingView({ranking,resultados}) {
 }
 
 // ── Palpites ──────────────────────────────────────────────────────────────────
-function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados}) {
+function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView}) {
   const [rodadaFiltro,setRodadaFiltro]=useState("Grupos");
   const [saved,setSaved]=useState(false);
-  const [now,setNow]=useState(new Date());
 
-  useEffect(()=>{
-    const t=setInterval(()=>setNow(new Date()),30000);
-    return ()=>clearInterval(t);
-  },[]);
+  const customs=loadStorage(KEY_MINHAS_SENS,{});
+  const temSenhaCustom=!!customs[participante];
 
   const rodadas=[...new Set(JOGOS.map(j=>j.rodada))];
   const jogosFiltrados=JOGOS.filter(j=>j.rodada===rodadaFiltro);
   const myPal=palpites[participante]||{};
   const totalPreenchidos=JOGOS.filter(j=>{
-    const p=myPal[j.id];
-    return p&&p.casa!==""&&p.fora!=="";
+    const p=myPal[j.id]; return p&&p.casa!==""&&p.fora!=="";
   }).length;
 
   function handlePalpite(jogoId,campo,valor,jogoHora) {
@@ -233,8 +317,7 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
 
   function salvar() {
     localStorage.setItem(KEY_PALPITES,JSON.stringify(palpites));
-    setSaved(true);
-    setTimeout(()=>setSaved(false),3000);
+    setSaved(true); setTimeout(()=>setSaved(false),3000);
   }
 
   return (
@@ -244,15 +327,28 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
           <h2 className="section-title">🎯 Palpites</h2>
           <p className="section-sub">{participante} · {totalPreenchidos}/{JOGOS.length} preenchidos</p>
         </div>
-        <button className={`btn-save ${saved?"saved":""}`} onClick={salvar}>
-          {saved?"✓ Salvo!":"💾 Salvar"}
-        </button>
+        <div className="header-actions">
+          {!temSenhaCustom&&(
+            <button className="btn-trocar-senha" onClick={()=>setView("trocar-senha")} title="Defina sua senha pessoal">
+              🔑 Criar senha
+            </button>
+          )}
+          <button className={`btn-save ${saved?"saved":""}`} onClick={salvar}>
+            {saved?"✓ Salvo!":"💾 Salvar"}
+          </button>
+        </div>
       </div>
+
+      {!temSenhaCustom&&(
+        <div className="aviso-senha">
+          🔒 <strong>Crie sua senha pessoal!</strong> Qualquer pessoa que saiba seu número de camisa pode acessar sua conta.
+          <button className="aviso-btn" onClick={()=>setView("trocar-senha")}>Criar senha agora →</button>
+        </div>
+      )}
 
       <div className="progress-bar">
         <div className="progress-fill" style={{width:`${(totalPreenchidos/JOGOS.length)*100}%`}}/>
       </div>
-
       <div className="rodada-tabs">
         {rodadas.map(r=>(
           <button key={r} className={`rodada-tab ${rodadaFiltro===r?"active":""}`} onClick={()=>setRodadaFiltro(r)}>
@@ -260,7 +356,6 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
           </button>
         ))}
       </div>
-
       <div className="jogos-list">
         {jogosFiltrados.map(jogo=>{
           const pal=myPal[jogo.id]||{casa:"",fora:""};
@@ -269,7 +364,6 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
           const pode=podeApostar(jogo.hora);
           const tempo=tempoRestante(jogo.hora);
           const preenchido=pal.casa!==""&&pal.fora!=="";
-
           return (
             <div key={jogo.id} className={`jogo-card ${preenchido?"filled":""} ${!pode?"locked":""} ${pts!==null?`result-${pts>0?"hit":"miss"}`:""}`}>
               <div className="jogo-meta">
@@ -277,38 +371,25 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
                 <span className="jogo-grupo">{jogo.grupo}</span>
                 {!pode&&!res&&<span className="jogo-locked">🔒 Encerrado</span>}
                 {pode&&tempo&&<span className="jogo-tempo">⏱ {tempo}</span>}
-                {pts!==null&&(
-                  <span className={`jogo-pts ${pts>0?"pts-pos":"pts-zero"}`}>
-                    {pts>0?`+${pts}`:0} pts
-                  </span>
-                )}
+                {res&&<span className="jogo-resultado-badge">✅ {res.casa}×{res.fora}</span>}
+                {pts!==null&&<span className={`jogo-pts ${pts>0?"pts-pos":"pts-zero"}`}>{pts>0?`+${pts}`:0} pts</span>}
               </div>
               <div className="jogo-body">
                 <span className="jogo-time jogo-casa">{jogo.casa}</span>
                 <div className="jogo-placar">
-                  <input
-                    className="placar-input"
-                    type="text" inputMode="numeric" maxLength={2}
-                    value={pal.casa}
-                    onChange={e=>handlePalpite(jogo.id,"casa",e.target.value,jogo.hora)}
-                    placeholder="–"
-                    disabled={!pode}
-                  />
+                  <input className="placar-input" type="text" inputMode="numeric" maxLength={2}
+                    value={pal.casa} onChange={e=>handlePalpite(jogo.id,"casa",e.target.value,jogo.hora)}
+                    placeholder="–" disabled={!pode}/>
                   <span className="placar-x">×</span>
-                  <input
-                    className="placar-input"
-                    type="text" inputMode="numeric" maxLength={2}
-                    value={pal.fora}
-                    onChange={e=>handlePalpite(jogo.id,"fora",e.target.value,jogo.hora)}
-                    placeholder="–"
-                    disabled={!pode}
-                  />
+                  <input className="placar-input" type="text" inputMode="numeric" maxLength={2}
+                    value={pal.fora} onChange={e=>handlePalpite(jogo.id,"fora",e.target.value,jogo.hora)}
+                    placeholder="–" disabled={!pode}/>
                 </div>
                 <span className="jogo-time jogo-fora">{jogo.fora}</span>
               </div>
               {isAdmin&&(
                 <div className="jogo-resultado-admin">
-                  <span className="admin-label">⚙️ Resultado:</span>
+                  <span className="admin-label">⚙️ Manual:</span>
                   <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2}
                     value={res?.casa??""} onChange={e=>handleResultado(jogo.id,"casa",e.target.value)} placeholder="–"/>
                   <span className="placar-x">×</span>
@@ -326,9 +407,8 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
 
 // ── Admin Login ───────────────────────────────────────────────────────────────
 function AdminLogin({setIsAdmin,setView}) {
-  const [pwd,setPwd]=useState("");
-  const [err,setErr]=useState(false);
-  function handleLogin() {
+  const [pwd,setPwd]=useState(""); const [err,setErr]=useState(false);
+  function login() {
     if(pwd===ADMIN_PWD){localStorage.setItem(KEY_ADMIN,"true");setIsAdmin(true);setView("ranking");}
     else{setErr(true);setTimeout(()=>setErr(false),2000);}
   }
@@ -338,9 +418,9 @@ function AdminLogin({setIsAdmin,setView}) {
         <div className="card-icon">⚙️</div>
         <h2 className="card-title">Área do Organizador</h2>
         <input className="select-input" type="password" placeholder="Senha do organizador"
-          value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+          value={pwd} onChange={e=>setPwd(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()}/>
         {err&&<p className="error-msg">Senha incorreta</p>}
-        <button className="btn-primary btn-full" onClick={handleLogin}>Entrar</button>
+        <button className="btn-primary btn-full" onClick={login}>Entrar</button>
       </div>
     </div>
   );
@@ -350,18 +430,45 @@ function AdminLogin({setIsAdmin,setView}) {
 export default function App() {
   const [view,setView]=useState("home");
   const [participante,setParticipante]=useState(()=>{
-    const s=loadStorage(KEY_SESSION,null);
-    return s?.nome||null;
+    const s=loadStorage(KEY_SESSION,null); return s?.nome||null;
   });
   const [palpites,setPalpites]=useState(()=>loadStorage(KEY_PALPITES,{}));
   const [resultados,setResultados]=useState(()=>loadStorage(KEY_RESULTADOS,{}));
   const [isAdmin,setIsAdmin]=useState(()=>localStorage.getItem(KEY_ADMIN)==="true");
   const [showAdmin,setShowAdmin]=useState(false);
   const [logoClicks,setLogoClicks]=useState(0);
+  const [ultimaAtualizacao,setUltimaAtualizacao]=useState(null);
+  const [fetchStatus,setFetchStatus]=useState("");
 
   const ranking=getRankingData(palpites,resultados);
 
-  function handleLogoClick() {
+  const fetchResultados=useCallback(async()=>{
+    const agora=Date.now();
+    const ultimo=parseInt(localStorage.getItem(KEY_LAST_FETCH)||"0");
+    if(agora-ultimo<FETCH_INTERVAL) return;
+    setFetchStatus("🔄 Buscando resultados...");
+    const novos=await buscarResultadosAPI();
+    if(novos&&Object.keys(novos).length>0){
+      setResultados(prev=>{
+        const merged={...prev,...novos};
+        localStorage.setItem(KEY_RESULTADOS,JSON.stringify(merged));
+        return merged;
+      });
+      const hora=new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+      setUltimaAtualizacao(hora);
+      setFetchStatus(`✅ ${Object.keys(novos).length} resultados atualizados`);
+    } else { setFetchStatus(""); }
+    localStorage.setItem(KEY_LAST_FETCH,String(agora));
+    setTimeout(()=>setFetchStatus(""),4000);
+  },[]);
+
+  useEffect(()=>{
+    fetchResultados();
+    const interval=setInterval(fetchResultados,FETCH_INTERVAL);
+    return()=>clearInterval(interval);
+  },[fetchResultados]);
+
+  function handleLogoClick(){
     const n=logoClicks+1; setLogoClicks(n);
     if(n>=5){setShowAdmin(true);setLogoClicks(0);}
     setTimeout(()=>setLogoClicks(0),3000);
@@ -377,18 +484,20 @@ export default function App() {
   return (
     <div className="app">
       <Header view={view} setView={setView} participante={participante} setParticipante={setParticipante}/>
+      {fetchStatus&&<div className="fetch-banner">{fetchStatus}</div>}
       <main className="main">
         {view==="home"&&<Hero setView={setView} ranking={ranking}/>}
         {view==="login"&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante}/>}
-        {view==="ranking"&&<RankingView ranking={ranking} resultados={resultados}/>}
+        {view==="trocar-senha"&&<TrocarSenhaView setView={setView}/>}
+        {view==="ranking"&&<RankingView ranking={ranking} resultados={resultados} ultimaAtualizacao={ultimaAtualizacao}/>}
         {(view==="palpites"&&participante)&&(
           <PalpitesView participante={participante} palpites={palpites} setPalpites={setPalpites}
-            resultados={resultados} isAdmin={isAdmin} setResultados={setResultados}/>
+            resultados={resultados} isAdmin={isAdmin} setResultados={setResultados} setView={setView}/>
         )}
         {(view==="palpites"&&!participante)&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante}/>}
       </main>
       <footer className="footer">
-        <span>Bolão do Toni · Copa 2026{isAdmin&&<span className="admin-badge" onClick={()=>{localStorage.removeItem(KEY_ADMIN);setIsAdmin(false);}}>⚙️ Admin (sair)</span>}</span>
+        <span>Bolão do Toni · Copa 2026 {isAdmin&&<span className="admin-badge" onClick={()=>{localStorage.removeItem(KEY_ADMIN);setIsAdmin(false);}}>⚙️ Admin (sair)</span>}</span>
         <span onClick={handleLogoClick} style={{cursor:"default",userSelect:"none"}}>🏆</span>
       </footer>
     </div>
