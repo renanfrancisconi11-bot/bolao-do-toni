@@ -233,15 +233,21 @@ export default function App(){
       const [pal,res]=await Promise.all([carregarPalpitesDB(),carregarResultadosDB()]);
       if(ativo){setPalpites(pal);setResultados(res);setCarregando(false);}
     }
+    // Busca resultados automáticos da football-data (via função serverless do Vercel)
+    async function buscarAutomatico(){
+      try{ await fetch("/api/resultados"); }catch(e){/* silencioso */}
+    }
     carregar();
+    buscarAutomatico(); // ao abrir o site, verifica resultados novos
     // Realtime: escuta mudanças nas tabelas
     const ch=supabase.channel("bolao-changes")
       .on("postgres_changes",{event:"*",schema:"public",table:"palpites"},()=>carregar())
       .on("postgres_changes",{event:"*",schema:"public",table:"resultados"},()=>carregar())
       .subscribe();
-    // Recarrega a cada 30s como backup
+    // Recarrega dados a cada 30s; busca resultados na API a cada 5min
     const intv=setInterval(carregar,30000);
-    return()=>{ativo=false;clearInterval(intv);supabase.removeChannel(ch);};
+    const intvApi=setInterval(buscarAutomatico,5*60*1000);
+    return()=>{ativo=false;clearInterval(intv);clearInterval(intvApi);supabase.removeChannel(ch);};
   },[]);
 
   const logoClick=()=>{const n=clicks+1;setClicks(n);if(n>=5){setShowAdmin(true);setClicks(0);}setTimeout(()=>setClicks(0),3000);};
