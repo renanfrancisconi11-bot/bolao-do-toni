@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import logo from "./logo.png";
 import { PARTICIPANTES as PB, SENHAS as SB, JOGOS, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
-import { buscarResultadosAPI } from "./api";
+import { salvarPalpiteDB, carregarPalpitesDB, salvarResultadoDB, carregarResultadosDB, supabase } from "./supabase";
 import "./App.css";
 
-const K_PAL="bolao_palpites",K_RES="bolao_resultados",K_SES="bolao_session",K_ADM="bolao_admin",K_FET="bolao_last_fetch",K_SEN="bolao_minhas_senhas",K_EXT="bolao_extra_participantes";
-const ADMIN_PWD="bdt2026admin",FETCH_INT=5*60*1000;
+const K_SES="bolao_session",K_ADM="bolao_admin",K_SEN="bolao_minhas_senhas",K_EXT="bolao_extra_participantes";
+const ADMIN_PWD="bdt2026admin";
 
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}};
 const getParts=()=>{const e=load(K_EXT,[]);return [...PB,...e.map(x=>x.nome)];};
@@ -86,7 +86,7 @@ function TrocarSenha({setView}){
   return (<div className="view-container"><div className="card login-card">
     <img src={logo} alt="BDT" className="login-logo"/>
     <h2 className="card-title">🔑 Trocar Senha</h2>
-    <p className="card-sub">Escolha uma senha pessoal para proteger sua conta</p>
+    <p className="card-sub">Escolha uma senha pessoal. Fica salva só neste aparelho.</p>
     <select className="select-input" value={sel} onChange={e=>{setSel(e.target.value);setErr("");}}><option value="">— Selecione seu nome —</option>{getParts().map(n=><option key={n} value={n}>{n}</option>)}</select>
     <input className="select-input" type="password" placeholder="Senha atual (número da camisa)" value={atual} onChange={e=>{setAtual(e.target.value);setErr("");}}/>
     <div className="divider-line"/>
@@ -98,10 +98,10 @@ function TrocarSenha({setView}){
   </div></div>);
 }
 
-function RankingView({ranking,resultados,ultima}){
+function RankingView({ranking,resultados,carregando}){
   const ap=Object.keys(resultados).length;
   return (<div className="view-container">
-    <div className="section-header"><div><h2 className="section-title">🏅 Ranking</h2>{ultima&&<p className="section-sub">Atualizado às {ultima} · {ap} jogos apurados</p>}</div><span className="section-badge">{ap} jogos apurados</span></div>
+    <div className="section-header"><div><h2 className="section-title">🏅 Ranking Geral</h2><p className="section-sub">{carregando?"Carregando...":`Atualizado em tempo real · ${ap} jogos apurados`}</p></div><span className="section-badge">{ap} jogos apurados</span></div>
     <div className="ranking-table"><div className="ranking-header"><span>Pos</span><span>Participante</span><span>Pts</span><span className="hide-mobile">Exatos</span><span className="hide-mobile">Acertos</span></div>
       {ranking.map((p,i)=><div key={p.nome} className={`ranking-row rank-${i<3?i+1:"rest"}`}><span className="rank-pos">{i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</span><span className="rank-name">{p.nome}</span><span className="rank-pts">{p.total}</span><span className="rank-extra hide-mobile">{p.exatos}</span><span className="rank-extra hide-mobile">{p.acertos}</span></div>)}
     </div>
@@ -112,18 +112,41 @@ function RankingView({ranking,resultados,ultima}){
 }
 
 function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView}){
-  const [rf,setRf]=useState("Grupos"),[saved,setSaved]=useState(false);
+  const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({});
   const temCustom=!!load(K_SEN,{})[participante];
   const rodadas=[...new Set(JOGOS.map(j=>j.rodada))];
   const jogos=JOGOS.filter(j=>j.rodada===rf);
   const my=palpites[participante]||{};
   const tot=JOGOS.filter(j=>{const p=my[j.id];return p&&p.casa!==""&&p.fora!=="";}).length;
-  const hp=(id,c,v,h)=>{if(!podeApostar(h))return;const vv=v.replace(/[^0-9]/g,"").slice(0,2);setPalpites(p=>{const n={...p,[participante]:{...p[participante],[id]:{...p[participante]?.[id],[c]:vv}}};localStorage.setItem(K_PAL,JSON.stringify(n));return n;});setSaved(false);};
-  const hr=(id,c,v)=>{const vv=v.replace(/[^0-9]/g,"").slice(0,2);setResultados(p=>{const n={...p,[id]:{...p[id],[c]:vv}};localStorage.setItem(K_RES,JSON.stringify(n));return n;});};
-  const salvar=()=>{localStorage.setItem(K_PAL,JSON.stringify(palpites));setSaved(true);setTimeout(()=>setSaved(false),3000);};
+
+  // Salva no banco com debounce
+  const timers=useRef({});
+  const hp=(id,c,v,h)=>{
+    if(!podeApostar(h))return;
+    const vv=v.replace(/[^0-9]/g,"").slice(0,2);
+    setPalpites(p=>({...p,[participante]:{...p[participante],[id]:{...p[participante]?.[id],[c]:vv}}}));
+    // debounce: salva 800ms após parar de digitar
+    clearTimeout(timers.current[id]);
+    timers.current[id]=setTimeout(async()=>{
+      setSalvando(s=>({...s,[id]:"salvando"}));
+      const atual=(JSON.parse(JSON.stringify(my[id]||{casa:"",fora:""})));
+      atual[c]=vv;
+      const ok=await salvarPalpiteDB(participante,id,c==="casa"?vv:(my[id]?.casa??""),c==="fora"?vv:(my[id]?.fora??""));
+      setSalvando(s=>({...s,[id]:ok?"ok":"erro"}));
+      setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),1500);
+    },800);
+  };
+  const hr=async(id,c,v)=>{
+    const vv=v.replace(/[^0-9]/g,"").slice(0,2);
+    setResultados(p=>({...p,[id]:{...p[id],[c]:vv}}));
+    clearTimeout(timers.current["r"+id]);
+    timers.current["r"+id]=setTimeout(()=>{
+      salvarResultadoDB(id,c==="casa"?vv:(resultados[id]?.casa??""),c==="fora"?vv:(resultados[id]?.fora??""));
+    },800);
+  };
   return (<div className="view-container">
-    <div className="section-header"><div><h2 className="section-title">🎯 Palpites</h2><p className="section-sub">{participante} · {tot}/{JOGOS.length} preenchidos</p></div>
-      <div className="header-actions">{!temCustom&&<button className="btn-trocar-senha" onClick={()=>setView("trocar-senha")}>🔑 Criar senha</button>}<button className={`btn-save ${saved?"saved":""}`} onClick={salvar}>{saved?"✓ Salvo!":"💾 Salvar"}</button></div>
+    <div className="section-header"><div><h2 className="section-title">🎯 Palpites</h2><p className="section-sub">{participante} · {tot}/{JOGOS.length} preenchidos · salva automático</p></div>
+      <div className="header-actions">{!temCustom&&<button className="btn-trocar-senha" onClick={()=>setView("trocar-senha")}>🔑 Criar senha</button>}</div>
     </div>
     {!temCustom&&<div className="aviso-senha">🔒 <strong>Crie sua senha pessoal!</strong> Qualquer um que saiba seu número de camisa pode acessar sua conta.<button className="aviso-btn" onClick={()=>setView("trocar-senha")}>Criar senha agora →</button></div>}
     <div className="progress-bar"><div className="progress-fill" style={{width:`${(tot/JOGOS.length)*100}%`}}/></div>
@@ -133,9 +156,11 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
         const p=my[j.id]||{casa:"",fora:""},r=resultados[j.id];
         const pts=r?calcularPontos(p.casa,p.fora,r.casa,r.fora,j.rodada):null;
         const pode=podeApostar(j.hora),tempo=tempoRestante(j.hora),preen=p.casa!==""&&p.fora!=="";
+        const st=salvando[j.id];
         return (<div key={j.id} className={`jogo-card ${preen?"filled":""} ${!pode?"locked":""} ${pts!==null?`result-${pts>0?"hit":"miss"}`:""}`}>
           <div className="jogo-meta"><span className="jogo-data">{j.data}{j.hora?` · ${j.hora.slice(11,16)}h`:""}</span><span className="jogo-grupo">{j.grupo}</span>
             {!pode&&!r&&<span className="jogo-locked">🔒 Encerrado</span>}{pode&&tempo&&<span className="jogo-tempo">⏱ {tempo}</span>}
+            {st==="salvando"&&<span className="jogo-tempo">💾 salvando...</span>}{st==="ok"&&<span className="jogo-resultado-badge">✓ salvo</span>}
             {r&&<span className="jogo-resultado-badge">✅ {r.casa}×{r.fora}</span>}{pts!==null&&<span className={`jogo-pts ${pts>0?"pts-pos":"pts-zero"}`}>{pts>0?`+${pts}`:0} pts</span>}
           </div>
           <div className="jogo-body"><span className="jogo-time jogo-casa">{j.casa}</span>
@@ -146,7 +171,7 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
             </div>
             <span className="jogo-time jogo-fora">{j.fora}</span>
           </div>
-          {isAdmin&&<div className="jogo-resultado-admin"><span className="admin-label">⚙️ Manual:</span>
+          {isAdmin&&<div className="jogo-resultado-admin"><span className="admin-label">⚙️ Resultado oficial:</span>
             <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2} value={r?.casa??""} onChange={e=>hr(j.id,"casa",e.target.value)} placeholder="–"/>
             <span className="placar-x">×</span>
             <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2} value={r?.fora??""} onChange={e=>hr(j.id,"fora",e.target.value)} placeholder="–"/>
@@ -175,7 +200,7 @@ function AdminPanel({setView}){
     {extras.length>0&&<div className="admin-card"><h3 className="admin-card-title">👥 Participantes Adicionados</h3><div className="admin-lista">
       {extras.map(e=><div key={e.nome} className="admin-item"><span className="admin-item-nome">{e.nome}</span><span className="admin-item-senha">senha: {e.senha}</span><button className="admin-item-btn" onClick={()=>rm(e.nome)}>🗑️ Remover</button></div>)}
     </div></div>}
-    <div className="admin-card"><h3 className="admin-card-title">🔑 Resetar Senha</h3><p className="admin-card-sub">Quando alguém esquecer a senha. Volta para o padrão.</p><div className="admin-lista">
+    <div className="admin-card"><h3 className="admin-card-title">🔑 Resetar Senha</h3><p className="admin-card-sub">Reset só funciona neste aparelho (senhas custom ficam locais).</p><div className="admin-lista">
       {todos.map(n=>{const c=!!load(K_SEN,{})[n];return <div key={n} className="admin-item"><span className="admin-item-nome">{n}</span><span className={`admin-item-status ${c?"custom":"padrao"}`}>{c?"🔒 custom":"🔓 padrão"}</span>{c&&<button className="admin-item-btn reset" onClick={()=>reset(n)}>↺ Resetar</button>}</div>;})}
     </div></div>
   </div>);
@@ -193,33 +218,41 @@ function AdminLogin({setIsAdmin,setView}){
 export default function App(){
   const [view,setView]=useState("home");
   const [participante,setParticipante]=useState(()=>load(K_SES,null)?.nome||null);
-  const [palpites,setPalpites]=useState(()=>load(K_PAL,{}));
-  const [resultados,setResultados]=useState(()=>load(K_RES,{}));
+  const [palpites,setPalpites]=useState({});
+  const [resultados,setResultados]=useState({});
+  const [carregando,setCarregando]=useState(true);
   const [isAdmin,setIsAdmin]=useState(()=>localStorage.getItem(K_ADM)==="true");
   const [showAdmin,setShowAdmin]=useState(false);
   const [clicks,setClicks]=useState(0);
-  const [ultima,setUltima]=useState(null);
-  const [fetchStatus,setFetchStatus]=useState("");
   const ranking=getRanking(palpites,resultados);
-  const fetchRes=useCallback(async()=>{
-    const ag=Date.now(),ul=parseInt(localStorage.getItem(K_FET)||"0");
-    if(ag-ul<FETCH_INT)return;
-    setFetchStatus("🔄 Buscando resultados...");
-    const nv=await buscarResultadosAPI();
-    if(nv&&Object.keys(nv).length>0){setResultados(p=>{const m={...p,...nv};localStorage.setItem(K_RES,JSON.stringify(m));return m;});setUltima(new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));setFetchStatus(`✅ ${Object.keys(nv).length} resultados atualizados`);}else setFetchStatus("");
-    localStorage.setItem(K_FET,String(ag));setTimeout(()=>setFetchStatus(""),4000);
+
+  // Carrega tudo do banco ao abrir + tempo real
+  useEffect(()=>{
+    let ativo=true;
+    async function carregar(){
+      const [pal,res]=await Promise.all([carregarPalpitesDB(),carregarResultadosDB()]);
+      if(ativo){setPalpites(pal);setResultados(res);setCarregando(false);}
+    }
+    carregar();
+    // Realtime: escuta mudanças nas tabelas
+    const ch=supabase.channel("bolao-changes")
+      .on("postgres_changes",{event:"*",schema:"public",table:"palpites"},()=>carregar())
+      .on("postgres_changes",{event:"*",schema:"public",table:"resultados"},()=>carregar())
+      .subscribe();
+    // Recarrega a cada 30s como backup
+    const intv=setInterval(carregar,30000);
+    return()=>{ativo=false;clearInterval(intv);supabase.removeChannel(ch);};
   },[]);
-  useEffect(()=>{fetchRes();const i=setInterval(fetchRes,FETCH_INT);return()=>clearInterval(i);},[fetchRes]);
+
   const logoClick=()=>{const n=clicks+1;setClicks(n);if(n>=5){setShowAdmin(true);setClicks(0);}setTimeout(()=>setClicks(0),3000);};
   if(showAdmin)return (<><Header view="admin" setView={()=>setShowAdmin(false)} participante={participante}/><AdminLogin setIsAdmin={setIsAdmin} setView={v=>{setShowAdmin(false);setView(v);}}/></>);
   return (<div className="app">
     <Header view={view} setView={setView} participante={participante}/>
-    {fetchStatus&&<div className="fetch-banner">{fetchStatus}</div>}
     <main className="main">
       {view==="home"&&<Hero setView={setView} ranking={ranking}/>}
       {view==="login"&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante}/>}
       {view==="trocar-senha"&&<TrocarSenha setView={setView}/>}
-      {view==="ranking"&&<RankingView ranking={ranking} resultados={resultados} ultima={ultima}/>}
+      {view==="ranking"&&<RankingView ranking={ranking} resultados={resultados} carregando={carregando}/>}
       {view==="admin-panel"&&isAdmin&&<AdminPanel setView={setView}/>}
       {(view==="palpites"&&participante)&&<PalpitesView participante={participante} palpites={palpites} setPalpites={setPalpites} resultados={resultados} isAdmin={isAdmin} setResultados={setResultados} setView={setView}/>}
       {(view==="palpites"&&!participante)&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante}/>}

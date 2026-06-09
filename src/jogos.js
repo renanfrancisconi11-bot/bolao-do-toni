@@ -11,8 +11,6 @@ export const PARTICIPANTES = [
   "Tales Augusto","Ulysses da Luz","Vinicius Geremias","Vitor Presa",
   "Willian Colombo","Eduardo Apolinário","Gustavo Vieira"
 ];
-
-// Senha = número da camisa
 export const SENHAS = {
   "Alan Milanez":"91","Arthur Michels":"9","Daniel Trevizani":"32","Deimis Amboni":"14",
   "Eduardo Benner":"25","Eduardo Bezerra":"6","Eduardo Brunelli":"0","Eduardo Trevizani":"2",
@@ -26,7 +24,6 @@ export const SENHAS = {
   "Tales Augusto":"58","Ulysses da Luz":"1","Vinicius Geremias":"10","Vitor Presa":"77",
   "Willian Colombo":"100","Eduardo Apolinário":"999","Gustavo Vieira":"101",
 };
-
 export const JOGOS = [
   {id:1,rodada:"Grupos",data:"11/06",hora:"2026-06-11T16:00",casa:"México",fora:"África do Sul",grupo:"A"},
   {id:2,rodada:"Grupos",data:"11/06",hora:"2026-06-11T23:00",casa:"Coreia do Sul",fora:"Rep. Tcheca",grupo:"B"},
@@ -131,50 +128,16 @@ export const JOGOS = [
   {id:101,rodada:"3º Lugar",data:"18/07",hora:"2026-07-18T17:00",casa:"Perd. SF1",fora:"Perd. SF2",grupo:"3L"},
   {id:102,rodada:"Final",data:"19/07",hora:"2026-07-19T17:00",casa:"Venc. SF1",fora:"Venc. SF2",grupo:"FINAL"},
 ];
-
-export const MULTIPLICADORES = {
-  "Grupos":1,"Oitavas":2,"Quartas":3,"Semifinal":4,"3º Lugar":2,"Final":5,
-};
-
-export function calcularPontos(palcasa, palfora, rescasa, resfora, rodada) {
-  if (palcasa === "" || palfora === "" || rescasa === "" || resfora === "") return null;
-  const pc = parseInt(palcasa), pf = parseInt(palfora);
-  const rc = parseInt(rescasa), rf = parseInt(resfora);
-  const m = MULTIPLICADORES[rodada] || 1;
-  if (pc === rc && pf === rf) return 3 * m;
-  const palSaldo = pc - pf, resSaldo = rc - rf;
-  const sign = x => x > 0 ? 1 : x < 0 ? -1 : 0;
-  if (sign(palSaldo) === sign(resSaldo)) {
-    if (palSaldo === resSaldo) return 2 * m;
-    return 1 * m;
-  }
+export const MULTIPLICADORES = {"Grupos":1,"Oitavas":2,"Quartas":3,"Semifinal":4,"3º Lugar":2,"Final":5};
+export function calcularPontos(palcasa,palfora,rescasa,resfora,rodada){
+  if(palcasa===""||palfora===""||rescasa===""||resfora==="")return null;
+  const pc=parseInt(palcasa),pf=parseInt(palfora),rc=parseInt(rescasa),rf=parseInt(resfora);
+  const m=MULTIPLICADORES[rodada]||1;
+  if(pc===rc&&pf===rf)return 3*m;
+  const sign=x=>x>0?1:x<0?-1:0;
+  if(sign(pc-pf)===sign(rc-rf)){if((pc-pf)===(rc-rf))return 2*m;return 1*m;}
   return 0;
 }
-
-// Converte hora de Brasília (UTC-3) para Date UTC — funciona em todos os browsers
-function horaParaUTC(jogoHora) {
-  const [datePart, timePart] = jogoHora.split("T");
-  const [ano, mes, dia] = datePart.split("-").map(Number);
-  const [hora, min] = timePart.split(":").map(Number);
-  return new Date(Date.UTC(ano, mes - 1, dia, hora + 3, min, 0));
-}
-
-export function podeApostar(jogoHora) {
-  if (!jogoHora) return true;
-  const agora = new Date();
-  const jogo = horaParaUTC(jogoHora);
-  return (jogo - agora) > 60 * 60 * 1000;
-}
-
-export function tempoRestante(jogoHora) {
-  if (!jogoHora) return null;
-  const agora = new Date();
-  const jogo = horaParaUTC(jogoHora);
-  const diffMs = jogo - agora;
-  if (diffMs <= 0) return null;
-  const horas = Math.floor(diffMs / 3600000);
-  const min = Math.floor((diffMs % 3600000) / 60000);
-  if (horas > 48) { const dias = Math.floor(horas / 24); return `${dias}d ${horas % 24}h`; }
-  if (horas > 0) return `${horas}h ${min}min`;
-  return `${min}min`;
-}
+function horaUTC(h){const[d,t]=h.split("T");const[a,me,di]=d.split("-").map(Number);const[ho,mi]=t.split(":").map(Number);return new Date(Date.UTC(a,me-1,di,ho+3,mi,0));}
+export function podeApostar(h){if(!h)return true;return (horaUTC(h)-new Date())>3600000;}
+export function tempoRestante(h){if(!h)return null;const d=horaUTC(h)-new Date();if(d<=0)return null;const ho=Math.floor(d/3600000),mi=Math.floor((d%3600000)/60000);if(ho>48){const di=Math.floor(ho/24);return `${di}d ${ho%24}h`;}if(ho>0)return `${ho}h ${mi}min`;return `${mi}min`;}
