@@ -11,6 +11,7 @@ export const PARTICIPANTES = [
   "Tales Augusto","Ulysses da Luz","Vinicius Geremias","Vitor Presa",
   "Willian Colombo","Eduardo Apolinário","Gustavo Vieira"
 ];
+
 export const SENHAS = {
   "Alan Milanez":"91","Arthur Michels":"9","Daniel Trevizani":"32","Deimis Amboni":"14",
   "Eduardo Benner":"25","Eduardo Bezerra":"6","Eduardo Brunelli":"0","Eduardo Trevizani":"2",
@@ -24,6 +25,7 @@ export const SENHAS = {
   "Tales Augusto":"58","Ulysses da Luz":"1","Vinicius Geremias":"10","Vitor Presa":"77",
   "Willian Colombo":"100","Eduardo Apolinário":"999","Gustavo Vieira":"101",
 };
+
 export const JOGOS = [
   {id:1,rodada:"Grupos",data:"11/06",hora:"2026-06-11T16:00",casa:"México",fora:"África do Sul",grupo:"A"},
   {id:2,rodada:"Grupos",data:"11/06",hora:"2026-06-11T23:00",casa:"Coreia do Sul",fora:"Rep. Tcheca",grupo:"B"},
@@ -128,7 +130,9 @@ export const JOGOS = [
   {id:101,rodada:"3º Lugar",data:"18/07",hora:"2026-07-18T17:00",casa:"Perd. SF1",fora:"Perd. SF2",grupo:"3L"},
   {id:102,rodada:"Final",data:"19/07",hora:"2026-07-19T17:00",casa:"Venc. SF1",fora:"Venc. SF2",grupo:"FINAL"},
 ];
+
 export const MULTIPLICADORES = {"Grupos":1,"Oitavas":2,"Quartas":3,"Semifinal":4,"3º Lugar":2,"Final":5};
+
 export function calcularPontos(palcasa,palfora,rescasa,resfora,rodada){
   if(palcasa===""||palfora===""||rescasa===""||resfora==="")return null;
   const pc=parseInt(palcasa),pf=parseInt(palfora),rc=parseInt(rescasa),rf=parseInt(resfora);
@@ -138,6 +142,7 @@ export function calcularPontos(palcasa,palfora,rescasa,resfora,rodada){
   if(sign(pc-pf)===sign(rc-rf)){if((pc-pf)===(rc-rf))return 2*m;return 1*m;}
   return 0;
 }
+
 function horaUTC(h){const[d,t]=h.split("T");const[a,me,di]=d.split("-").map(Number);const[ho,mi]=t.split(":").map(Number);return new Date(Date.UTC(a,me-1,di,ho+3,mi,0));}
 export function podeApostar(h){if(!h)return true;return (horaUTC(h)-new Date())>3600000;}
 export function tempoRestante(h){if(!h)return null;const d=horaUTC(h)-new Date();if(d<=0)return null;const ho=Math.floor(d/3600000),mi=Math.floor((d%3600000)/60000);if(ho>48){const di=Math.floor(ho/24);return `${di}d ${ho%24}h`;}if(ho>0)return `${ho}h ${mi}min`;return `${mi}min`;}
