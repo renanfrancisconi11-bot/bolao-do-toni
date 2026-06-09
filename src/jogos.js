@@ -189,3 +189,31 @@ export function calcularPontos(palcasa, palfora, rescasa, resfora, rodada) {
   }
   return 0;
 }
+
+// Converte hora de Brasília (UTC-3) para Date UTC — funciona em todos os browsers
+function horaParaUTC(jogoHora) {
+  const [datePart, timePart] = jogoHora.split("T");
+  const [ano, mes, dia] = datePart.split("-").map(Number);
+  const [hora, min] = timePart.split(":").map(Number);
+  return new Date(Date.UTC(ano, mes - 1, dia, hora + 3, min, 0));
+}
+
+export function podeApostar(jogoHora) {
+  if (!jogoHora) return true;
+  const agora = new Date();
+  const jogo = horaParaUTC(jogoHora);
+  return (jogo - agora) > 60 * 60 * 1000;
+}
+
+export function tempoRestante(jogoHora) {
+  if (!jogoHora) return null;
+  const agora = new Date();
+  const jogo = horaParaUTC(jogoHora);
+  const diffMs = jogo - agora;
+  if (diffMs <= 0) return null;
+  const horas = Math.floor(diffMs / 3600000);
+  const min = Math.floor((diffMs % 3600000) / 60000);
+  if (horas > 48) { const dias = Math.floor(horas / 24); return `${dias}d ${horas % 24}h`; }
+  if (horas > 0) return `${horas}h ${min}min`;
+  return `${min}min`;
+}
