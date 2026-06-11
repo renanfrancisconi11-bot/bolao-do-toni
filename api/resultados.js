@@ -60,7 +60,7 @@ function achar(h,a){const hn=norm(h),an=norm(a);return JOGOS.find(j=>{const c=no
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin","*");
   try {
-    const apiRes = await fetch("https://api.football-data.org/v4/competitions/WC/matches?season=2026&status=FINISHED",{
+    const apiRes = await fetch("https://api.football-data.org/v4/competitions/WC/matches?season=2026",{
       headers:{"X-Auth-Token":API_TOKEN}
     });
     if(!apiRes.ok){
