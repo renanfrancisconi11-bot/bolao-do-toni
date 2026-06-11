@@ -54,3 +54,23 @@ export async function resetarSenhaDB(participante) {
   if (error) console.warn("Erro ao resetar senha:", error.message);
   return !error;
 }
+
+// ── Participantes extras (adicionados pelo admin, salvos no banco) ────────────
+export async function carregarExtrasDB() {
+  const { data, error } = await supabase.from("participantes_extras").select("*");
+  if (error) { console.warn("Erro ao carregar extras:", error.message); return []; }
+  return data.map(e => ({ nome: e.nome, senha: e.senha }));
+}
+
+export async function adicionarExtraDB(nome, senha) {
+  const { error } = await supabase.from("participantes_extras")
+    .insert({ nome, senha });
+  if (error) console.warn("Erro ao adicionar participante:", error.message);
+  return !error;
+}
+
+export async function removerExtraDB(nome) {
+  const { error } = await supabase.from("participantes_extras").delete().eq("nome", nome);
+  if (error) console.warn("Erro ao remover participante:", error.message);
+  return !error;
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import logo from "./logo.png";
 import { PARTICIPANTES as PB, SENHAS as SB, JOGOS, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
-import { salvarPalpiteDB, carregarPalpitesDB, salvarResultadoDB, carregarResultadosDB, salvarSenhaDB, carregarSenhasDB, resetarSenhaDB, supabase } from "./supabase";
+import { salvarPalpiteDB, carregarPalpitesDB, salvarResultadoDB, carregarResultadosDB, salvarSenhaDB, carregarSenhasDB, resetarSenhaDB, carregarExtrasDB, adicionarExtraDB, removerExtraDB, supabase } from "./supabase";
 import "./App.css";
 
 const K_SES="bolao_session",K_ADM="bolao_admin",K_EXT="bolao_extra_participantes";
@@ -203,8 +203,22 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
 function AdminPanel({setView,senhasDB,setSenhasDB,extras,setExtras}){
   const [nome,setNome]=useState(""),[senha,setSenha]=useState(""),[err,setErr]=useState(""),[ok,setOk]=useState("");
   const todos=getParts(extras);
-  const add=()=>{const n=nome.trim(),s=senha.trim();if(!n){setErr("Digite o nome.");return;}if(!s){setErr("Digite a senha.");return;}if(todos.includes(n)){setErr("Esse nome já existe!");return;}const nv=[...extras,{nome:n,senha:s}];localStorage.setItem(K_EXT,JSON.stringify(nv));setExtras(nv);setNome("");setSenha("");setErr("");setOk(`✅ ${n} adicionado!`);setTimeout(()=>setOk(""),3000);};
-  const rm=n=>{if(!window.confirm(`Remover ${n}?`))return;const nv=extras.filter(e=>e.nome!==n);localStorage.setItem(K_EXT,JSON.stringify(nv));setExtras(nv);};
+  const add=async()=>{
+    const n=nome.trim(),s=senha.trim();
+    if(!n){setErr("Digite o nome.");return;}
+    if(!s){setErr("Digite a senha.");return;}
+    if(todos.includes(n)){setErr("Esse nome já existe!");return;}
+    const okDb=await adicionarExtraDB(n,s);
+    if(!okDb){setErr("Erro ao salvar no banco. Tente de novo.");return;}
+    setExtras(prev=>[...prev,{nome:n,senha:s}]);
+    setNome("");setSenha("");setErr("");setOk(`✅ ${n} adicionado! Agora aparece para todos.`);setTimeout(()=>setOk(""),3000);
+  };
+  const rm=async n=>{
+    if(!window.confirm(`Remover ${n}?`))return;
+    const okDb=await removerExtraDB(n);
+    if(!okDb){setOk("❌ Erro ao remover. Tente de novo.");setTimeout(()=>setOk(""),3000);return;}
+    setExtras(prev=>prev.filter(e=>e.nome!==n));
+  };
   const reset=async n=>{
     if(!window.confirm(`Resetar senha de ${n}? Vai voltar para a senha padrão (número da camisa).`))return;
     const ok=await resetarSenhaDB(n);
@@ -256,7 +270,7 @@ export default function App(){
   const [palpites,setPalpites]=useState({});
   const [resultados,setResultados]=useState({});
   const [senhasDB,setSenhasDB]=useState({});
-  const [extras,setExtras]=useState(()=>load(K_EXT,[]));
+  const [extras,setExtras]=useState([]);
   const [carregando,setCarregando]=useState(true);
   const [isAdmin,setIsAdmin]=useState(()=>localStorage.getItem(K_ADM)==="true");
   const [showAdmin,setShowAdmin]=useState(false);
@@ -266,8 +280,8 @@ export default function App(){
   useEffect(()=>{
     let ativo=true;
     async function carregar(){
-      const [pal,res,sen]=await Promise.all([carregarPalpitesDB(),carregarResultadosDB(),carregarSenhasDB()]);
-      if(ativo){setPalpites(pal);setResultados(res);setSenhasDB(sen);setCarregando(false);}
+      const [pal,res,sen,ext]=await Promise.all([carregarPalpitesDB(),carregarResultadosDB(),carregarSenhasDB(),carregarExtrasDB()]);
+      if(ativo){setPalpites(pal);setResultados(res);setSenhasDB(sen);setExtras(ext);setCarregando(false);}
     }
     async function buscarAuto(){try{await fetch("/api/resultados");}catch(e){}}
     carregar();
@@ -276,6 +290,7 @@ export default function App(){
       .on("postgres_changes",{event:"*",schema:"public",table:"palpites"},()=>carregar())
       .on("postgres_changes",{event:"*",schema:"public",table:"resultados"},()=>carregar())
       .on("postgres_changes",{event:"*",schema:"public",table:"senhas"},()=>carregar())
+      .on("postgres_changes",{event:"*",schema:"public",table:"participantes_extras"},()=>carregar())
       .subscribe();
     const intv=setInterval(carregar,30000);
     const intvApi=setInterval(buscarAuto,5*60*1000);
