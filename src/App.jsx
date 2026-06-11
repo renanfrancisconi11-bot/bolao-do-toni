@@ -8,7 +8,7 @@ const K_SES="bolao_session",K_ADM="bolao_admin",K_EXT="bolao_extra_participantes
 const ADMIN_PWD="bdt2026admin";
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}};
 const getParts=(extras)=>[...PB,...(extras||[]).map(x=>x.nome)];
-const icon=r=>({Grupos:"⚽",Oitavas:"⚡",Quartas:"🔥",Semifinal:"💥","3º Lugar":"🥉",Final:"🏆"}[r]||"⚽");
+const icon=r=>({Grupos:"⚽","16-avos":"🎯",Oitavas:"⚡",Quartas:"🔥",Semifinal:"💥","3º Lugar":"🥉",Final:"🏆"}[r]||"⚽");
 
 function getRanking(pal,res,extras){
   return getParts(extras).map(nome=>{
@@ -46,7 +46,7 @@ function Hero({setView,ranking,extras}){
     <div className="hero-content">
       <div className="hero-badge">🇧🇷 🇺🇸 🇨🇦 🇲🇽 · 11 JUN – 19 JUL 2026</div>
       <h1 className="hero-title">BOLÃO<br/><span className="hero-title-accent">DO TONI</span><br/><span className="hero-title-blue">2026</span></h1>
-      <p className="hero-sub">{total} participantes · 102 jogos · palpite até 1h antes de cada jogo</p>
+      <p className="hero-sub">{total} participantes · 104 jogos · palpite até 1h antes de cada jogo</p>
       <div className="hero-actions">
         <button className="btn-primary" onClick={()=>setView("ranking")}>Ver Ranking</button>
         <button className="btn-secondary" onClick={()=>setView("login")}>Fazer Palpites</button>
@@ -63,7 +63,6 @@ function LoginView({setParticipante,setView,participante,senhasDB,extras}){
   const go=()=>{
     if(!sel){setErr("Selecione seu nome.");return;}
     if(!sen){setErr("Digite sua senha.");return;}
-    // Verifica: senha no banco → extras → padrão
     let ok=false;
     if(senhasDB[sel]) ok=senhasDB[sel]===sen;
     else { const e=(extras||[]).find(x=>x.nome===sel); ok=e?e.senha===sen:SB[sel]===sen; }
@@ -134,6 +133,7 @@ function RankingView({ranking,resultados,carregando}){
 }
 
 function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView,senhasDB}){
+  const rodadasUnicas=[...new Set(JOGOS.map(j=>j.rodada))];
   const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({});
   const temCustom=!!senhasDB[participante];
   const my=palpites[participante]||{};
@@ -169,7 +169,7 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
     </div>
     {!temCustom&&<div className="aviso-senha">🔒 <strong>Crie sua senha pessoal!</strong> Qualquer um que saiba seu número de camisa pode acessar sua conta.<button className="aviso-btn" onClick={()=>setView("trocar-senha")}>Criar senha agora →</button></div>}
     <div className="progress-bar"><div className="progress-fill" style={{width:`${(tot/JOGOS.length)*100}%`}}/></div>
-    <div className="rodada-tabs">{[...new Set(JOGOS.map(j=>j.rodada))].map(r=><button key={r} className={`rodada-tab ${rf===r?"active":""}`} onClick={()=>setRf(r)}>{icon(r)} {r}</button>)}</div>
+    <div className="rodada-tabs">{rodadasUnicas.map(r=><button key={r} className={`rodada-tab ${rf===r?"active":""}`} onClick={()=>setRf(r)}>{icon(r)} {r}</button>)}</div>
     <div className="jogos-list">
       {JOGOS.filter(j=>j.rodada===rf).map(j=>{
         const p=my[j.id]||{casa:"",fora:""},r=resultados[j.id];
