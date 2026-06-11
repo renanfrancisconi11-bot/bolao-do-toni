@@ -2,6 +2,7 @@ const API_TOKEN = "2f31933ee37349bb95799a24a5701b83";
 const SUPABASE_URL = "https://roeccnuucpdmzzntvkxu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_4AC2R5FnzG0E6F-kivQU_g_6FsLNlrq";
 
+// Confrontos da fase de grupos (corrigidos) para casar com a API football-data
 const JOGOS = [
   {id:1,casa:"México",fora:"África do Sul"},{id:2,casa:"Coreia do Sul",fora:"Rep. Tcheca"},
   {id:3,casa:"Canadá",fora:"Bósnia-Herz."},{id:4,casa:"Estados Unidos",fora:"Paraguai"},
