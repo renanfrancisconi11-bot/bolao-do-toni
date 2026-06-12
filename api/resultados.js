@@ -2,7 +2,6 @@ const API_TOKEN = "2f31933ee37349bb95799a24a5701b83";
 const SUPABASE_URL = "https://roeccnuucpdmzzntvkxu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_4AC2R5FnzG0E6F-kivQU_g_6FsLNlrq";
 
-// Confrontos da fase de grupos (corrigidos) para casar com a API football-data
 const JOGOS = [
   {id:1,casa:"México",fora:"África do Sul"},{id:2,casa:"Coreia do Sul",fora:"Rep. Tcheca"},
   {id:3,casa:"Canadá",fora:"Bósnia-Herz."},{id:4,casa:"Estados Unidos",fora:"Paraguai"},
@@ -58,40 +57,76 @@ const NOMES = {
 const norm=s=>(NOMES[s]||s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
 function achar(h,a){const hn=norm(h),an=norm(a);return JOGOS.find(j=>{const c=norm(j.casa),f=norm(j.fora);return (c===hn&&f===an)||((c.includes(hn)||hn.includes(c))&&(f.includes(an)||an.includes(f)));});}
 
+async function buscarJogos(url){
+  try{
+    const r = await fetch(url,{headers:{"X-Auth-Token":API_TOKEN}});
+    if(!r.ok) return {ok:false, status:r.status, matches:[]};
+    const d = await r.json();
+    return {ok:true, matches:d.matches||[]};
+  }catch(e){
+    return {ok:false, erro:e.message, matches:[]};
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin","*");
+  res.setHeader("Cache-Control","no-store");
   try {
-    const apiRes = await fetch("https://api.football-data.org/v4/competitions/WC/matches?season=2026",{
-      headers:{"X-Auth-Token":API_TOKEN}
+    // BUSCA DUPLA: temporada + intervalo de datas (caches diferentes na API)
+    const hoje = new Date();
+    const tresDiasAtras = new Date(hoje.getTime() - 3*24*60*60*1000);
+    const amanha = new Date(hoje.getTime() + 1*24*60*60*1000);
+    const fmt = d => d.toISOString().slice(0,10);
+
+    const [porSeason, porData] = await Promise.all([
+      buscarJogos("https://api.football-data.org/v4/competitions/WC/matches?season=2026"),
+      buscarJogos(`https://api.football-data.org/v4/competitions/WC/matches?dateFrom=${fmt(tresDiasAtras)}&dateTo=${fmt(amanha)}`),
+    ]);
+
+    // Combina e deduplica por id da API
+    const todosMap = new Map();
+    [...porSeason.matches, ...porData.matches].forEach(m=>{
+      if(m?.id && !todosMap.has(m.id)) todosMap.set(m.id, m);
+      // se já existe e o novo tem status FINISHED, prioriza o FINISHED
+      else if(m?.id && m.status==="FINISHED") todosMap.set(m.id, m);
     });
-    if(!apiRes.ok){
-      return res.status(200).json({ok:false,motivo:`API retornou ${apiRes.status}`,gravados:0});
-    }
-    const data = await apiRes.json();
-    if(!data.matches?.length){
-      return res.status(200).json({ok:true,motivo:"Nenhum jogo finalizado ainda",gravados:0});
-    }
+    const todos = [...todosMap.values()];
+    const finalizados = todos.filter(m=>m.status==="FINISHED");
+
     const paraGravar=[];
-    data.matches.forEach(m=>{
-      if(m.status!=="FINISHED")return;
-      const hs=m.score?.fullTime?.home,as=m.score?.fullTime?.away;
-      if(hs==null||as==null)return;
-      const jogo=achar(m.homeTeam?.name||"",m.awayTeam?.name||"");
-      if(jogo)paraGravar.push({jogo_id:jogo.id,casa:String(hs),fora:String(as),updated_at:new Date().toISOString()});
+    const naoCasaram=[];
+    finalizados.forEach(m=>{
+      const hs=m.score?.fullTime?.home, as=m.score?.fullTime?.away;
+      if(hs==null||as==null) return;
+      const h=m.homeTeam?.name||"", a=m.awayTeam?.name||"";
+      const jogo=achar(h,a);
+      if(jogo) paraGravar.push({jogo_id:jogo.id,casa:String(hs),fora:String(as),updated_at:new Date().toISOString()});
+      else naoCasaram.push(h+" x "+a);
     });
-    if(paraGravar.length===0){
-      return res.status(200).json({ok:true,motivo:"Nenhum jogo casou com o bolão",gravados:0});
+
+    let gravados=0, erroGravar=null;
+    if(paraGravar.length>0){
+      const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/resultados`,{
+        method:"POST",
+        headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates"},
+        body:JSON.stringify(paraGravar)
+      });
+      if(sbRes.ok) gravados=paraGravar.length;
+      else erroGravar=await sbRes.text();
     }
-    const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/resultados`,{
-      method:"POST",
-      headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates"},
-      body:JSON.stringify(paraGravar)
+
+    return res.status(200).json({
+      ok: !erroGravar,
+      gravados,
+      detalhes: {
+        fonte_season: {ok:porSeason.ok, total:porSeason.matches.length, finalizados:porSeason.matches.filter(m=>m.status==="FINISHED").length},
+        fonte_datas: {ok:porData.ok, total:porData.matches.length, finalizados:porData.matches.filter(m=>m.status==="FINISHED").length},
+        finalizados_combinados: finalizados.length,
+        casaram: paraGravar.map(p=>`jogo_id ${p.jogo_id}: ${p.casa}x${p.fora}`),
+        nao_casaram: naoCasaram,
+        erro_gravar: erroGravar,
+      }
     });
-    if(!sbRes.ok){
-      const txt=await sbRes.text();
-      return res.status(200).json({ok:false,motivo:"Erro ao gravar no banco: "+txt,gravados:0});
-    }
-    return res.status(200).json({ok:true,gravados:paraGravar.length,resultados:paraGravar});
   } catch(err){
     return res.status(200).json({ok:false,motivo:err.message,gravados:0});
   }
