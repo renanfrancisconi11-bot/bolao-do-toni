@@ -143,3 +143,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .admin-badge:hover{background:rgba(255,152,0,.2);}
 .senha-hint{font-size:12px;color:var(--text3);margin-top:-4px;}
 @media (max-width:600px){.hide-mobile{display:none;}.ranking-header{grid-template-columns:50px 1fr 70px;}.ranking-row{grid-template-columns:50px 1fr 70px;}.hero-podium{display:none;}.hero-title{font-size:58px;}.jogo-time{font-size:12px;}}
+.palpites-todos{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.btn-ver-palpites{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;}
+.btn-ver-palpites:hover{color:var(--accent);border-color:rgba(245,208,0,.4);background:rgba(245,208,0,.06);}
+.palpites-lista{margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto;}
+.palpite-linha{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:13px;}
+.palpite-linha.meu{border-color:rgba(245,208,0,.45);background:rgba(245,208,0,.07);}
+.palpite-linha.vazio{color:var(--text3);justify-content:center;}
+.palpite-nome{flex:1;font-weight:500;color:var(--text2);}
+.palpite-linha.meu .palpite-nome{color:var(--accent);font-weight:700;}
+.palpite-placar{font-family:'DM Mono',monospace;font-weight:700;color:var(--text);}
+.palpite-pts{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;padding:1px 7px;border-radius:100px;}
+.palpite-pts.pos{background:rgba(0,200,83,.15);color:var(--green);}
+.palpite-pts.zero{background:rgba(255,68,68,.12);color:var(--red);}

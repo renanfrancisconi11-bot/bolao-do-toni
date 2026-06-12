@@ -134,7 +134,7 @@ function RankingView({ranking,resultados,carregando}){
 
 function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView,senhasDB}){
   const rodadasUnicas=[...new Set(JOGOS.map(j=>j.rodada))];
-  const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({});
+  const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({}),[verPalpites,setVerPalpites]=useState({});
   const temCustom=!!senhasDB[participante];
   const my=palpites[participante]||{};
   const tot=JOGOS.filter(j=>{const p=my[j.id];return p&&p.casa!==""&&p.fora!=="";}).length;
@@ -194,6 +194,32 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
             <span className="placar-x">×</span>
             <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2} value={r?.fora??""} onChange={e=>hr(j.id,"fora",e.target.value)} placeholder="–"/>
           </div>}
+          {!pode&&(()=>{
+            // Jogo travado: mostra palpites de todos (dropdown)
+            const lista=Object.keys(palpites)
+              .map(nome=>{
+                const pp=palpites[nome]?.[j.id];
+                if(!pp||pp.casa===""||pp.fora==="")return null;
+                const ptsP=r?calcularPontos(pp.casa,pp.fora,r.casa,r.fora,j.rodada):null;
+                return {nome,casa:pp.casa,fora:pp.fora,pts:ptsP};
+              })
+              .filter(Boolean)
+              .sort((a,b)=>(b.pts??-1)-(a.pts??-1)||a.nome.localeCompare(b.nome));
+            const aberto=!!verPalpites[j.id];
+            return (<div className="palpites-todos">
+              <button className="btn-ver-palpites" onClick={()=>setVerPalpites(v=>({...v,[j.id]:!v[j.id]}))}>
+                👥 {aberto?"Esconder":"Ver"} palpites de todos ({lista.length})
+              </button>
+              {aberto&&<div className="palpites-lista">
+                {lista.length===0&&<div className="palpite-linha vazio">Ninguém palpitou neste jogo.</div>}
+                {lista.map(x=>(<div key={x.nome} className={`palpite-linha ${x.nome===participante?"meu":""}`}>
+                  <span className="palpite-nome">{x.nome}</span>
+                  <span className="palpite-placar">{x.casa}×{x.fora}</span>
+                  {x.pts!==null&&<span className={`palpite-pts ${x.pts>0?"pos":"zero"}`}>{x.pts>0?`+${x.pts}`:0}</span>}
+                </div>))}
+              </div>}
+            </div>);
+          })()}
         </div>);
       })}
     </div>
