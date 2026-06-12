@@ -52,7 +52,10 @@ const NOMES = {
   "Scotland":"Escócia","New Zealand":"Nova Zelândia","Egypt":"Egito","Iraq":"Iraque","Jordan":"Jordânia",
   "Algeria":"Argélia","DR Congo":"RD Congo","Ivory Coast":"Costa do Marfim","Panama":"Panamá",
   "Uzbekistan":"Uzbequistão","Bosnia and Herzegovina":"Bósnia-Herz.","Haiti":"Haiti","Cape Verde":"Cabo Verde",
-  "Czech Republic":"Rep. Tcheca","Curaçao":"Curaçao",
+  "Czech Republic":"Rep. Tcheca","Czechia":"Rep. Tcheca","Curaçao":"Curaçao",
+  "Korea Republic":"Coreia do Sul","Côte d'Ivoire":"Costa do Marfim","Cote d'Ivoire":"Costa do Marfim",
+  "USA":"Estados Unidos","United States of America":"Estados Unidos","Cape Verde Islands":"Cabo Verde",
+  "Congo DR":"RD Congo","IR Iran":"Irã","Türkiye":"Turquia","Bosnia-Herzegovina":"Bósnia-Herz.",
 };
 const norm=s=>(NOMES[s]||s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");
 function achar(h,a){const hn=norm(h),an=norm(a);return JOGOS.find(j=>{const c=norm(j.casa),f=norm(j.fora);return (c===hn&&f===an)||((c.includes(hn)||hn.includes(c))&&(f.includes(an)||an.includes(f)));});}
