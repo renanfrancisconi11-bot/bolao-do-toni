@@ -293,7 +293,7 @@ export default function App(){
       .on("postgres_changes",{event:"*",schema:"public",table:"participantes_extras"},()=>carregar())
       .subscribe();
     const intv=setInterval(carregar,30000);
-    const intvApi=setInterval(buscarAuto,5*60*1000);
+    const intvApi=setInterval(buscarAuto,3*60*1000);
     return()=>{ativo=false;clearInterval(intv);clearInterval(intvApi);supabase.removeChannel(ch);};
   },[]);
 
