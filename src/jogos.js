@@ -1,29 +1,21 @@
 export const PARTICIPANTES = [
-  "Alan Milanez","Arthur Michels","Daniel Trevizani","Deimis Amboni",
-  "Eduardo Benner","Eduardo Bezerra","Eduardo Brunelli","Eduardo Trevizani",
-  "Gabriel Henrique","Guilherme Padilha","Hediel Bongiolo","Humberto Gava",
-  "Iago Sartor","Israel Farias","Itaci Netto","João Manoel",
-  "João Paulo Damiani","João Vitor Machado","Juninho Magagnin","Leonardo Simon",
-  "Lucas Beck","Lucas Dagô","Lucas Jorge","Luis Fernando A.",
-  "Luiz Felipe M.","Luiz Henrique Zanette","Mateus Motta","Matheus Frasson",
-  "Matheus Marcelino","Mauricio Neves","Pedro Bolan","Pedro Vitor C.",
-  "Rafael Bezerra","Renan Francisconi","Ricardo Cizeski","Rodrigo Penteado",
-  "Tales Augusto","Ulysses da Luz","Vinicius Geremias","Vitor Presa",
-  "Willian Colombo","Eduardo Apolinário","Gustavo Vieira"
+  "Daniel Trevizani","Eduardo Brunelli","Eduardo Trevizani","Gabriel Henrique",
+  "Guilherme Padilha","Humberto Gava","Iago Sartor","Israel Farias",
+  "João Manoel","Juninho Magagnin","Leonardo Simon","Lucas Dagô",
+  "Luiz Henrique Zanette","Mateus Motta","Matheus Frasson","Mauricio Neves",
+  "Pedro Bolan","Pedro Vitor C.","Renan Francisconi","Ricardo Cizeski",
+  "Ulysses da Luz","Vinicius Geremias","Vitor Presa","Eduardo Apolinário","Gustavo Vieira"
 ];
 
 export const SENHAS = {
-  "Alan Milanez":"91","Arthur Michels":"9","Daniel Trevizani":"32","Deimis Amboni":"14",
-  "Eduardo Benner":"25","Eduardo Bezerra":"6","Eduardo Brunelli":"0","Eduardo Trevizani":"2",
-  "Gabriel Henrique":"96","Guilherme Padilha":"81","Hediel Bongiolo":"90","Humberto Gava":"4",
-  "Iago Sartor":"97","Israel Farias":"92","Itaci Netto":"98","João Manoel":"37",
-  "João Paulo Damiani":"18","João Vitor Machado":"21","Juninho Magagnin":"17","Leonardo Simon":"8",
-  "Lucas Beck":"29","Lucas Dagô":"13","Lucas Jorge":"22","Luis Fernando A.":"30",
-  "Luiz Felipe M.":"11","Luiz Henrique Zanette":"20","Mateus Motta":"50","Matheus Frasson":"5",
-  "Matheus Marcelino":"78","Mauricio Neves":"23","Pedro Bolan":"88","Pedro Vitor C.":"7",
-  "Rafael Bezerra":"3","Renan Francisconi":"99","Ricardo Cizeski":"26","Rodrigo Penteado":"12",
-  "Tales Augusto":"58","Ulysses da Luz":"1","Vinicius Geremias":"10","Vitor Presa":"77",
-  "Willian Colombo":"100","Eduardo Apolinário":"999","Gustavo Vieira":"101",
+  "Daniel Trevizani":"32","Eduardo Brunelli":"0","Eduardo Trevizani":"2",
+  "Gabriel Henrique":"96","Guilherme Padilha":"81","Humberto Gava":"4",
+  "Iago Sartor":"97","Israel Farias":"92","João Manoel":"37",
+  "Juninho Magagnin":"17","Leonardo Simon":"8","Lucas Dagô":"13",
+  "Luiz Henrique Zanette":"20","Mateus Motta":"50","Matheus Frasson":"5",
+  "Mauricio Neves":"23","Pedro Bolan":"88","Pedro Vitor C.":"7",
+  "Renan Francisconi":"99","Ricardo Cizeski":"26","Ulysses da Luz":"1",
+  "Vinicius Geremias":"10","Vitor Presa":"77","Eduardo Apolinário":"999","Gustavo Vieira":"101",
 };
 
 export const JOGOS = [

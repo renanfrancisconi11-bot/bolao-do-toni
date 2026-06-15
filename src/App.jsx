@@ -12,17 +12,22 @@ const icon=r=>({Grupos:"⚽","16-avos":"🎯",Oitavas:"⚡",Quartas:"🔥",Semif
 
 function getRanking(pal,res,extras){
   return getParts(extras).map(nome=>{
-    let total=0,exatos=0,acertos=0;
+    let total=0,exatos=0,acertos=0,palpitou=0;
     JOGOS.forEach(j=>{
-      const p=pal[nome]?.[j.id],r=res[j.id];
+      const p=pal[nome]?.[j.id];
+      // conta se fez palpite válido neste jogo
+      if(p&&p.casa!==""&&p.fora!=="")palpitou++;
+      const r=res[j.id];
       if(!p||!r)return;
       const pts=calcularPontos(p.casa,p.fora,r.casa,r.fora,j.rodada);
       if(pts===null)return;
       total+=pts;const m=MULTIPLICADORES[j.rodada]||1;
       if(pts===3*m)exatos++;if(pts>0)acertos++;
     });
-    return {nome,total,exatos,acertos};
-  }).sort((a,b)=>b.total-a.total||b.exatos-a.exatos||a.nome.localeCompare(b.nome));
+    return {nome,total,exatos,acertos,palpitou};
+  })
+  .filter(x=>x.palpitou>0) // só quem fez ao menos 1 palpite aparece
+  .sort((a,b)=>b.total-a.total||b.exatos-a.exatos||a.nome.localeCompare(b.nome));
 }
 
 function Header({view,setView,participante}){
