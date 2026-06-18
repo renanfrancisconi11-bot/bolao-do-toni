@@ -152,9 +152,15 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
     setPalpites(p=>({...p,[participante]:{...p[participante],[id]:{...p[participante]?.[id],[c]:vv}}}));
     clearTimeout(timers.current[id]);
     timers.current[id]=setTimeout(async()=>{
-      setSalvando(s=>({...s,[id]:"salvando"}));
       const cur=palRef.current[participante]?.[id]||{casa:"",fora:""};
-      const ok=await salvarPalpiteDB(participante,id,cur.casa??"",cur.fora??"");
+      // Só salva se AMBOS os campos estiverem preenchidos
+      if(cur.casa===""||cur.fora===""){
+        setSalvando(s=>({...s,[id]:"incompleto"}));
+        setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),2500);
+        return;
+      }
+      setSalvando(s=>({...s,[id]:"salvando"}));
+      const ok=await salvarPalpiteDB(participante,id,cur.casa,cur.fora);
       setSalvando(s=>({...s,[id]:ok?"ok":"erro"}));
       setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),1500);
     },800);
@@ -184,7 +190,7 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
         return (<div key={j.id} className={`jogo-card ${preen?"filled":""} ${!pode?"locked":""} ${pts!==null?`result-${pts>0?"hit":"miss"}`:""}`}>
           <div className="jogo-meta"><span className="jogo-data">{j.data}{j.hora?` · ${j.hora.slice(11,16)}h`:""}</span><span className="jogo-grupo">{j.grupo}</span>
             {!pode&&!r&&<span className="jogo-locked">🔒 Encerrado</span>}{pode&&tempo&&<span className="jogo-tempo">⏱ {tempo}</span>}
-            {st==="salvando"&&<span className="jogo-tempo">💾...</span>}{st==="ok"&&<span className="jogo-resultado-badge">✓ salvo</span>}
+            {st==="salvando"&&<span className="jogo-tempo">💾...</span>}{st==="ok"&&<span className="jogo-resultado-badge">✓ salvo</span>}{st==="incompleto"&&<span className="jogo-incompleto">⚠️ preencha os 2 placares</span>}
             {r&&<span className="jogo-resultado-badge">✅ {r.casa}×{r.fora}</span>}{pts!==null&&<span className={`jogo-pts ${pts>0?"pts-pos":"pts-zero"}`}>{pts>0?`+${pts}`:0} pts</span>}
           </div>
           <div className="jogo-body"><span className="jogo-time jogo-casa">{j.casa}</span>
