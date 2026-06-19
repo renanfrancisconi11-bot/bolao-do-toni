@@ -137,7 +137,7 @@ function RankingView({ranking,resultados,carregando}){
   </div>);
 }
 
-function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView,senhasDB,meusEditsRef}){
+function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView,senhasDB}){
   const rodadasUnicas=[...new Set(JOGOS.map(j=>j.rodada))];
   const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({}),[verPalpites,setVerPalpites]=useState({});
   const temCustom=!!senhasDB[participante];
@@ -149,19 +149,12 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
   const hp=(id,c,v,h)=>{
     if(!podeApostar(h))return;
     const vv=v.replace(/[^0-9]/g,"").slice(0,2);
-    setPalpites(p=>{
-      const atual=p[participante]?.[id]||{casa:"",fora:""};
-      const novo={...atual,[c]:vv};
-      // registra a edição recente para não ser sobrescrita pelo recarregamento
-      if(meusEditsRef)meusEditsRef.current[id]={casa:novo.casa,fora:novo.fora,ts:Date.now()};
-      return {...p,[participante]:{...p[participante],[id]:novo}};
-    });
+    setPalpites(p=>({...p,[participante]:{...p[participante],[id]:{...p[participante]?.[id],[c]:vv}}}));
     clearTimeout(timers.current[id]);
     timers.current[id]=setTimeout(async()=>{
       setSalvando(s=>({...s,[id]:"salvando"}));
       const cur=palRef.current[participante]?.[id]||{casa:"",fora:""};
       const ok=await salvarPalpiteDB(participante,id,cur.casa??"",cur.fora??"");
-      if(ok&&meusEditsRef&&meusEditsRef.current[id])meusEditsRef.current[id].ts=Date.now(); // renova janela após salvar
       setSalvando(s=>({...s,[id]:ok?"ok":"erro"}));
       setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),1500);
     },800);
@@ -305,9 +298,7 @@ function AdminLogin({setIsAdmin,setView}){
 export default function App(){
   const [view,setView]=useState("home");
   const [participante,setParticipante]=useState(()=>load(K_SES,null)?.nome||null);
-  const participanteRef=useRef(participante); participanteRef.current=participante;
   const [palpites,setPalpites]=useState({});
-  const meusEditsRef=useRef({}); // {jogoId: {casa,fora,ts}} edições recentes do próprio usuário
   const [resultados,setResultados]=useState({});
   const [senhasDB,setSenhasDB]=useState({});
   const [extras,setExtras]=useState([]);
@@ -321,24 +312,7 @@ export default function App(){
     let ativo=true;
     async function carregar(){
       const [pal,res,sen,ext]=await Promise.all([carregarPalpitesDB(),carregarResultadosDB(),carregarSenhasDB(),carregarExtrasDB()]);
-      if(!ativo)return;
-      // preserva edições recentes do próprio usuário (evita "zerar" o que acabou de digitar)
-      const agora=Date.now();
-      const meusEdits=meusEditsRef.current;
-      const nomesEditados=Object.keys(meusEdits);
-      if(nomesEditados.length && participanteRef.current){
-        const nome=participanteRef.current;
-        if(!pal[nome])pal[nome]={};
-        Object.keys(meusEdits).forEach(jid=>{
-          const e=meusEdits[jid];
-          if(agora-e.ts<10000){ // editado nos últimos 10s: mantém o que está na tela
-            pal[nome][jid]={casa:e.casa,fora:e.fora};
-          }else{
-            delete meusEdits[jid]; // edição antiga já foi persistida, pode soltar
-          }
-        });
-      }
-      setPalpites(pal);setResultados(res);setSenhasDB(sen);setExtras(ext);setCarregando(false);
+      if(ativo){setPalpites(pal);setResultados(res);setSenhasDB(sen);setExtras(ext);setCarregando(false);}
     }
     async function buscarAuto(){try{await fetch("/api/resultados");}catch(e){}}
     carregar();
@@ -364,7 +338,7 @@ export default function App(){
       {view==="trocar-senha"&&<TrocarSenha setView={setView} participante={participante} senhasDB={senhasDB} setSenhasDB={setSenhasDB} extras={extras}/>}
       {view==="ranking"&&<RankingView ranking={ranking} resultados={resultados} carregando={carregando}/>}
       {view==="admin-panel"&&isAdmin&&<AdminPanel setView={setView} senhasDB={senhasDB} setSenhasDB={setSenhasDB} extras={extras} setExtras={setExtras}/>}
-      {(view==="palpites"&&participante)&&<PalpitesView participante={participante} palpites={palpites} setPalpites={setPalpites} resultados={resultados} isAdmin={isAdmin} setResultados={setResultados} setView={setView} senhasDB={senhasDB} meusEditsRef={meusEditsRef}/>}
+      {(view==="palpites"&&participante)&&<PalpitesView participante={participante} palpites={palpites} setPalpites={setPalpites} resultados={resultados} isAdmin={isAdmin} setResultados={setResultados} setView={setView} senhasDB={senhasDB}/>}
       {(view==="palpites"&&!participante)&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante} senhasDB={senhasDB} extras={extras}/>}
     </main>
     <footer className="footer">
