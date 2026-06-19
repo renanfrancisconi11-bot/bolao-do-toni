@@ -145,25 +145,29 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
   const tot=JOGOS.filter(j=>{const p=my[j.id];return p&&p.casa!==""&&p.fora!=="";}).length;
   const timers=useRef({});
   const palRef=useRef(palpites); palRef.current=palpites;
+  const editRef=useRef({});
   const resRef=useRef(resultados); resRef.current=resultados;
   const hp=(id,c,v,h)=>{
     if(!podeApostar(h))return;
     const vv=v.replace(/[^0-9]/g,"").slice(0,2);
-    setPalpites(p=>({...p,[participante]:{...p[participante],[id]:{...p[participante]?.[id],[c]:vv}}}));
+    // acumula os valores mais recentes numa ref dedicada (à prova de digitação rápida)
+    const base=editRef.current[id]||{...(palRef.current[participante]?.[id]||{casa:"",fora:""})};
+    const novo={...base,[c]:vv};
+    editRef.current[id]=novo;
+    setPalpites(p=>({...p,[participante]:{...p[participante],[id]:novo}}));
     clearTimeout(timers.current[id]);
     timers.current[id]=setTimeout(async()=>{
-      const cur=palRef.current[participante]?.[id]||{casa:"",fora:""};
-      // Só salva se AMBOS os campos estiverem preenchidos
-      if(cur.casa===""||cur.fora===""){
+      const final=editRef.current[id]||{casa:"",fora:""};
+      if(final.casa===""||final.fora===""){
         setSalvando(s=>({...s,[id]:"incompleto"}));
         setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),2500);
         return;
       }
       setSalvando(s=>({...s,[id]:"salvando"}));
-      const ok=await salvarPalpiteDB(participante,id,cur.casa,cur.fora);
+      const ok=await salvarPalpiteDB(participante,id,final.casa,final.fora);
       setSalvando(s=>({...s,[id]:ok?"ok":"erro"}));
       setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),1500);
-    },800);
+    },1200);
   };
   const hr=(id,c,v)=>{
     const vv=v.replace(/[^0-9]/g,"").slice(0,2);
