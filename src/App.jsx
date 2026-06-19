@@ -145,29 +145,19 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
   const tot=JOGOS.filter(j=>{const p=my[j.id];return p&&p.casa!==""&&p.fora!=="";}).length;
   const timers=useRef({});
   const palRef=useRef(palpites); palRef.current=palpites;
-  const editRef=useRef({});
   const resRef=useRef(resultados); resRef.current=resultados;
   const hp=(id,c,v,h)=>{
     if(!podeApostar(h))return;
     const vv=v.replace(/[^0-9]/g,"").slice(0,2);
-    // acumula os valores mais recentes numa ref dedicada (à prova de digitação rápida)
-    const base=editRef.current[id]||{...(palRef.current[participante]?.[id]||{casa:"",fora:""})};
-    const novo={...base,[c]:vv};
-    editRef.current[id]=novo;
-    setPalpites(p=>({...p,[participante]:{...p[participante],[id]:novo}}));
+    setPalpites(p=>({...p,[participante]:{...p[participante],[id]:{...p[participante]?.[id],[c]:vv}}}));
     clearTimeout(timers.current[id]);
     timers.current[id]=setTimeout(async()=>{
-      const final=editRef.current[id]||{casa:"",fora:""};
-      if(final.casa===""||final.fora===""){
-        setSalvando(s=>({...s,[id]:"incompleto"}));
-        setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),2500);
-        return;
-      }
       setSalvando(s=>({...s,[id]:"salvando"}));
-      const ok=await salvarPalpiteDB(participante,id,final.casa,final.fora);
+      const cur=palRef.current[participante]?.[id]||{casa:"",fora:""};
+      const ok=await salvarPalpiteDB(participante,id,cur.casa??"",cur.fora??"");
       setSalvando(s=>({...s,[id]:ok?"ok":"erro"}));
       setTimeout(()=>setSalvando(s=>{const n={...s};delete n[id];return n;}),1500);
-    },1200);
+    },800);
   };
   const hr=(id,c,v)=>{
     const vv=v.replace(/[^0-9]/g,"").slice(0,2);
@@ -194,7 +184,7 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
         return (<div key={j.id} className={`jogo-card ${preen?"filled":""} ${!pode?"locked":""} ${pts!==null?`result-${pts>0?"hit":"miss"}`:""}`}>
           <div className="jogo-meta"><span className="jogo-data">{j.data}{j.hora?` · ${j.hora.slice(11,16)}h`:""}</span><span className="jogo-grupo">{j.grupo}</span>
             {!pode&&!r&&<span className="jogo-locked">🔒 Encerrado</span>}{pode&&tempo&&<span className="jogo-tempo">⏱ {tempo}</span>}
-            {st==="salvando"&&<span className="jogo-tempo">💾...</span>}{st==="ok"&&<span className="jogo-resultado-badge">✓ salvo</span>}{st==="incompleto"&&<span className="jogo-incompleto">⚠️ preencha os 2 placares</span>}
+            {st==="salvando"&&<span className="jogo-tempo">💾...</span>}{st==="ok"&&<span className="jogo-resultado-badge">✓ salvo</span>}
             {r&&<span className="jogo-resultado-badge">✅ {r.casa}×{r.fora}</span>}{pts!==null&&<span className={`jogo-pts ${pts>0?"pts-pos":"pts-zero"}`}>{pts>0?`+${pts}`:0} pts</span>}
           </div>
           <div className="jogo-body"><span className="jogo-time jogo-casa">{j.casa}</span>
