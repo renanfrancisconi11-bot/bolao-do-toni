@@ -139,7 +139,7 @@ function RankingView({ranking,resultados,carregando}){
 
 function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView,senhasDB}){
   const rodadasUnicas=[...new Set(JOGOS.map(j=>j.rodada))];
-  const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({}),[verPalpites,setVerPalpites]=useState({});
+  const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({}),[verPalpites,setVerPalpites]=useState({}),[verEncerrados,setVerEncerrados]=useState(false);
   const temCustom=!!senhasDB[participante];
   const my=palpites[participante]||{};
   const tot=JOGOS.filter(j=>{const p=my[j.id];return p&&p.casa!==""&&p.fora!=="";}).length;
@@ -176,7 +176,9 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
     <div className="progress-bar"><div className="progress-fill" style={{width:`${(tot/JOGOS.length)*100}%`}}/></div>
     <div className="rodada-tabs">{rodadasUnicas.map(r=><button key={r} className={`rodada-tab ${rf===r?"active":""}`} onClick={()=>setRf(r)}>{icon(r)} {r}</button>)}</div>
     <div className="jogos-list">
-      {JOGOS.filter(j=>j.rodada===rf).map(j=>{
+      {(()=>{
+      const temResultado=j=>{const r=resultados[j.id];return !!(r&&r.casa!==""&&r.fora!=="");};
+      const renderJogo=j=>{
         const p=my[j.id]||{casa:"",fora:""},r=resultados[j.id];
         const pts=r?calcularPontos(p.casa,p.fora,r.casa,r.fora,j.rodada):null;
         const pode=podeApostar(j.hora),tempo=tempoRestante(j.hora),preen=p.casa!==""&&p.fora!=="";
@@ -226,7 +228,23 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
             </div>);
           })()}
         </div>);
-      })}
+      };
+      const jogosRodada=JOGOS.filter(j=>j.rodada===rf);
+      if(rf!=="Grupos")return jogosRodada.map(renderJogo);
+      const encerrados=jogosRodada.filter(temResultado);
+      const abertos=jogosRodada.filter(j=>!temResultado(j));
+      const ptsEnc=encerrados.reduce((acc,j)=>{const p=my[j.id],r=resultados[j.id];const pts=(p&&p.casa!==""&&p.fora!=="")?calcularPontos(p.casa,p.fora,r.casa,r.fora,j.rodada):null;return acc+(pts||0);},0);
+      return (<>
+        {encerrados.length>0&&<div style={{marginBottom:12}}>
+          <button onClick={()=>setVerEncerrados(v=>!v)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"13px 18px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,color:"#e5e7eb",fontSize:15,fontWeight:600,cursor:"pointer"}}>
+            <span>{verEncerrados?"▾":"▸"} Jogos encerrados ({encerrados.length})</span>
+            <span style={{color:"#4ade80",fontWeight:700}}>{ptsEnc} pts</span>
+          </button>
+          {verEncerrados&&<div style={{marginTop:12}}>{encerrados.map(renderJogo)}</div>}
+        </div>}
+        {abertos.map(renderJogo)}
+      </>);
+      })()}
     </div>
   </div>);
 }
