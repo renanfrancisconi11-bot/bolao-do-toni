@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import logo from "./logo.png";
 import { PARTICIPANTES as PB, SENHAS as SB, JOGOS, AVANCO, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
-import { salvarPalpiteDB, carregarPalpitesDB, salvarResultadoDB, carregarResultadosDB, salvarSenhaDB, carregarSenhasDB, resetarSenhaDB, carregarExtrasDB, adicionarExtraDB, removerExtraDB, supabase } from "./supabase";
+import { salvarPalpiteDB, carregarPalpitesDB, salvarResultadoDB, carregarResultadosDB, salvarSenhaDB, carregarSenhasDB, resetarSenhaDB, carregarExtrasDB, adicionarExtraDB, removerExtraDB, salvarAvancouDB, supabase } from "./supabase";
 import "./App.css";
 
 const K_SES="bolao_session",K_ADM="bolao_admin",K_EXT="bolao_extra_participantes";
@@ -16,16 +16,22 @@ const icon=r=>({Grupos:"⚽","16-avos":"🎯",Oitavas:"⚡",Quartas:"🔥",Semif
 function vencedorDe(jogoId, resultados, nomesResolvidos){
   const r=resultados[jogoId];
   const jogo=JOGOS.find(j=>j.id===jogoId);
-  if(!r||r.casa===""||r.fora===""||!jogo)return {V:null,P:null};
+  if(!jogo)return {V:null,P:null};
   // nome real dos times deste jogo (pode já ter vindo da automação)
   const nomeCasa=nomesResolvidos[jogoId]?.casa ?? jogo.casa;
   const nomeFora=nomesResolvidos[jogoId]?.fora ?? jogo.fora;
+  // 1) se o admin indicou quem avançou, isso manda (cobre empates/pênaltis)
+  if(r&&r.avancou){
+    if(r.avancou===nomeCasa)return {V:nomeCasa,P:nomeFora};
+    if(r.avancou===nomeFora)return {V:nomeFora,P:nomeCasa};
+  }
+  // 2) senão, decide pelo placar (90min): maior número vence
+  if(!r||r.casa===""||r.fora==="")return {V:null,P:null};
   const c=parseInt(r.casa), f=parseInt(r.fora);
   if(isNaN(c)||isNaN(f))return {V:null,P:null};
   if(c>f)return {V:nomeCasa,P:nomeFora};
   if(f>c)return {V:nomeFora,P:nomeCasa};
-  // empate: no mata-mata vai pra pênaltis — não dá pra saber automático.
-  // deixa indefinido (admin preenche o vencedor manualmente se quiser via resultado).
+  // empate sem indicação de quem passou: indefinido (admin precisa indicar)
   return {V:null,P:null,empate:true};
 }
 
@@ -214,6 +220,10 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
       salvarResultadoDB(id,cur.casa??"",cur.fora??"");
     },800);
   };
+  const ha=(id,timeNome)=>{
+    setResultados(p=>({...p,[id]:{...p[id],avancou:timeNome}}));
+    salvarAvancouDB(id,timeNome);
+  };
   return (<div className="view-container">
     <div className="section-header"><div><h2 className="section-title">🎯 Palpites</h2><p className="section-sub">{participante} · {tot}/{JOGOS.length} preenchidos · salva automático</p></div>
       <div className="header-actions">{!temCustom&&<button className="btn-trocar-senha" onClick={()=>setView("trocar-senha")}>🔑 Criar senha</button>}</div>
@@ -246,6 +256,14 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
             <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2} value={r?.casa??""} onChange={e=>hr(j.id,"casa",e.target.value)} placeholder="–"/>
             <span className="placar-x">×</span>
             <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2} value={r?.fora??""} onChange={e=>hr(j.id,"fora",e.target.value)} placeholder="–"/>
+          </div>}
+          {isAdmin&&j.rodada!=="Grupos"&&!indefinido&&<div className="jogo-avancou-admin">
+            <span className="admin-label">🏆 Quem passou? <span className="admin-hint">(só em empate/pênaltis)</span></span>
+            <div className="avancou-btns">
+              <button className={`avancou-btn ${r?.avancou===j.casa?"ativo":""}`} onClick={()=>ha(j.id,j.casa)}>{j.casa}</button>
+              <button className={`avancou-btn ${r?.avancou===j.fora?"ativo":""}`} onClick={()=>ha(j.id,j.fora)}>{j.fora}</button>
+              {r?.avancou&&<button className="avancou-btn limpar" onClick={()=>ha(j.id,"")}>✕</button>}
+            </div>
           </div>}
           {!pode&&(()=>{
             const lista=Object.keys(palpites)

@@ -156,3 +156,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .admin-badge:hover{background:rgba(255,152,0,.2);}
 .senha-hint{font-size:12px;color:var(--text3);margin-top:-4px;}
 @media (max-width:600px){.hide-mobile{display:none;}.ranking-header{grid-template-columns:50px 1fr 70px;}.ranking-row{grid-template-columns:50px 1fr 70px;}.hero-podium{display:none;}.hero-title{font-size:58px;}.jogo-time{font-size:12px;}}
+.jogo-avancou-admin{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+.admin-hint{font-size:10px;color:var(--text3);font-weight:400;}
+.avancou-btns{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.avancou-btn{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:6px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.avancou-btn:hover{border-color:var(--accent);color:var(--text);}
+.avancou-btn.ativo{background:rgba(245,208,0,.18);border-color:var(--accent);color:var(--accent);}
+.avancou-btn.limpar{background:rgba(255,68,68,.1);color:var(--red);border-color:rgba(255,68,68,.25);padding:6px 10px;}
