@@ -4,7 +4,8 @@ export const PARTICIPANTES = [
   "João Manoel","Juninho Magagnin","Leonardo Simon","Lucas Dagô",
   "Luiz Henrique Zanette","Mateus Motta","Matheus Frasson","Mauricio Neves",
   "Pedro Bolan","Pedro Vitor C.","Renan Francisconi","Ricardo Cizeski",
-  "Ulysses da Luz","Vinicius Geremias","Vitor Presa","Eduardo Apolinário","Gustavo Vieira"
+  "Ulysses da Luz","Vinicius Geremias","Vitor Presa","Eduardo Apolinário","Gustavo Vieira",
+  "Arthur Michels"
 ];
 
 export const SENHAS = {
@@ -16,10 +17,11 @@ export const SENHAS = {
   "Mauricio Neves":"23","Pedro Bolan":"88","Pedro Vitor C.":"7",
   "Renan Francisconi":"99","Ricardo Cizeski":"26","Ulysses da Luz":"1",
   "Vinicius Geremias":"10","Vitor Presa":"77","Eduardo Apolinário":"999","Gustavo Vieira":"101",
+  "Arthur Michels":"9",
 };
 
 export const JOGOS = [
-  // ═══════════ FASE DE GRUPOS (corrigida conforme lista oficial) ═══════════
+  // ═══════════ FASE DE GRUPOS ═══════════
   {id:1, rodada:"Grupos",data:"11/06",hora:"2026-06-11T16:00",casa:"México",fora:"África do Sul",grupo:"A"},
   {id:2, rodada:"Grupos",data:"11/06",hora:"2026-06-11T23:00",casa:"Coreia do Sul",fora:"Rep. Tcheca",grupo:"A"},
   {id:3, rodada:"Grupos",data:"12/06",hora:"2026-06-12T16:00",casa:"Canadá",fora:"Bósnia-Herz.",grupo:"B"},
@@ -92,45 +94,60 @@ export const JOGOS = [
   {id:70,rodada:"Grupos",data:"27/06",hora:"2026-06-27T20:30",casa:"RD Congo",fora:"Uzbequistão",grupo:"K"},
   {id:71,rodada:"Grupos",data:"27/06",hora:"2026-06-27T23:00",casa:"Argélia",fora:"Áustria",grupo:"J"},
   {id:72,rodada:"Grupos",data:"27/06",hora:"2026-06-27T23:00",casa:"Jordânia",fora:"Argentina",grupo:"J"},
-  // ═══════════ ROUND OF 32 / 16-AVOS (estrutura oficial FIFA 48 times) ═══════════
-  {id:73,rodada:"16-avos",data:"28/06",hora:"2026-06-28T17:00",casa:"2º A",fora:"2º B",grupo:"R32"},
-  {id:74,rodada:"16-avos",data:"28/06",hora:"2026-06-28T21:00",casa:"1º E",fora:"3º A/B/C/D/F",grupo:"R32"},
-  {id:75,rodada:"16-avos",data:"29/06",hora:"2026-06-29T17:00",casa:"1º F",fora:"2º C",grupo:"R32"},
-  {id:76,rodada:"16-avos",data:"29/06",hora:"2026-06-29T21:00",casa:"1º C",fora:"2º F",grupo:"R32"},
-  {id:77,rodada:"16-avos",data:"30/06",hora:"2026-06-30T17:00",casa:"1º I",fora:"3º C/D/F/G/H",grupo:"R32"},
-  {id:78,rodada:"16-avos",data:"30/06",hora:"2026-06-30T21:00",casa:"2º E",fora:"2º I",grupo:"R32"},
-  {id:79,rodada:"16-avos",data:"01/07",hora:"2026-07-01T17:00",casa:"1º A",fora:"3º C/E/F/H/I",grupo:"R32"},
-  {id:80,rodada:"16-avos",data:"01/07",hora:"2026-07-01T21:00",casa:"1º L",fora:"3º E/H/I/J/K",grupo:"R32"},
-  {id:81,rodada:"16-avos",data:"02/07",hora:"2026-07-02T17:00",casa:"1º D",fora:"3º B/E/F/I/J",grupo:"R32"},
-  {id:82,rodada:"16-avos",data:"02/07",hora:"2026-07-02T21:00",casa:"1º G",fora:"3º A/E/H/I/J",grupo:"R32"},
-  {id:83,rodada:"16-avos",data:"03/07",hora:"2026-07-03T17:00",casa:"2º K",fora:"2º L",grupo:"R32"},
-  {id:84,rodada:"16-avos",data:"03/07",hora:"2026-07-03T21:00",casa:"1º H",fora:"2º J",grupo:"R32"},
-  {id:85,rodada:"16-avos",data:"03/07",hora:"2026-07-03T19:00",casa:"1º B",fora:"3º E/F/G/I/J",grupo:"R32"},
-  {id:86,rodada:"16-avos",data:"02/07",hora:"2026-07-02T19:00",casa:"1º J",fora:"2º H",grupo:"R32"},
-  {id:87,rodada:"16-avos",data:"01/07",hora:"2026-07-01T19:00",casa:"1º K",fora:"3º D/E/I/J/L",grupo:"R32"},
-  {id:88,rodada:"16-avos",data:"28/06",hora:"2026-06-28T19:00",casa:"2º D",fora:"2º G",grupo:"R32"},
-  // ═══════════ OITAVAS DE FINAL (Round of 16) ═══════════
-  {id:89,rodada:"Oitavas",data:"04/07",hora:"2026-07-04T18:00",casa:"Venc. 74",fora:"Venc. 77",grupo:"OF"},
-  {id:90,rodada:"Oitavas",data:"04/07",hora:"2026-07-04T22:00",casa:"Venc. 73",fora:"Venc. 75",grupo:"OF"},
-  {id:91,rodada:"Oitavas",data:"05/07",hora:"2026-07-05T17:00",casa:"Venc. 76",fora:"Venc. 78",grupo:"OF"},
+  // ═══════════ 16-AVOS (Round of 32) — TIMES REAIS ═══════════
+  // alimenta -> id da oitava (oitavasMap abaixo)
+  {id:73,rodada:"16-avos",data:"28/06",hora:"2026-06-28T16:00",casa:"África do Sul",fora:"Canadá",grupo:"R32"},
+  {id:74,rodada:"16-avos",data:"29/06",hora:"2026-06-29T14:00",casa:"Brasil",fora:"Japão",grupo:"R32"},
+  {id:75,rodada:"16-avos",data:"29/06",hora:"2026-06-29T17:30",casa:"Alemanha",fora:"Paraguai",grupo:"R32"},
+  {id:76,rodada:"16-avos",data:"29/06",hora:"2026-06-29T22:00",casa:"Holanda",fora:"Marrocos",grupo:"R32"},
+  {id:77,rodada:"16-avos",data:"30/06",hora:"2026-06-30T14:00",casa:"Costa do Marfim",fora:"Noruega",grupo:"R32"},
+  {id:78,rodada:"16-avos",data:"30/06",hora:"2026-06-30T18:00",casa:"França",fora:"Suécia",grupo:"R32"},
+  {id:79,rodada:"16-avos",data:"30/06",hora:"2026-06-30T22:00",casa:"México",fora:"Equador",grupo:"R32"},
+  {id:80,rodada:"16-avos",data:"01/07",hora:"2026-07-01T13:00",casa:"Inglaterra",fora:"RD Congo",grupo:"R32"},
+  {id:81,rodada:"16-avos",data:"01/07",hora:"2026-07-01T17:00",casa:"Bélgica",fora:"Senegal",grupo:"R32"},
+  {id:82,rodada:"16-avos",data:"01/07",hora:"2026-07-01T21:00",casa:"Estados Unidos",fora:"Bósnia-Herz.",grupo:"R32"},
+  {id:83,rodada:"16-avos",data:"02/07",hora:"2026-07-02T16:00",casa:"Espanha",fora:"Áustria",grupo:"R32"},
+  {id:84,rodada:"16-avos",data:"02/07",hora:"2026-07-02T20:00",casa:"Portugal",fora:"Croácia",grupo:"R32"},
+  {id:85,rodada:"16-avos",data:"02/07",hora:"2026-07-03T00:00",casa:"Suíça",fora:"Argélia",grupo:"R32"},
+  {id:86,rodada:"16-avos",data:"03/07",hora:"2026-07-03T15:00",casa:"Austrália",fora:"Egito",grupo:"R32"},
+  {id:87,rodada:"16-avos",data:"03/07",hora:"2026-07-03T19:00",casa:"Argentina",fora:"Cabo Verde",grupo:"R32"},
+  {id:88,rodada:"16-avos",data:"03/07",hora:"2026-07-03T22:30",casa:"Colômbia",fora:"Gana",grupo:"R32"},
+  // ═══════════ OITAVAS (Round of 16) ═══════════
+  {id:89,rodada:"Oitavas",data:"04/07",hora:"2026-07-04T18:00",casa:"Venc. 75",fora:"Venc. 78",grupo:"OF"},
+  {id:90,rodada:"Oitavas",data:"04/07",hora:"2026-07-04T14:00",casa:"Venc. 73",fora:"Venc. 76",grupo:"OF"},
+  {id:91,rodada:"Oitavas",data:"05/07",hora:"2026-07-05T17:00",casa:"Venc. 74",fora:"Venc. 77",grupo:"OF"},
   {id:92,rodada:"Oitavas",data:"05/07",hora:"2026-07-05T21:00",casa:"Venc. 79",fora:"Venc. 80",grupo:"OF"},
-  {id:93,rodada:"Oitavas",data:"06/07",hora:"2026-07-06T17:00",casa:"Venc. 83",fora:"Venc. 84",grupo:"OF"},
-  {id:94,rodada:"Oitavas",data:"06/07",hora:"2026-07-06T21:00",casa:"Venc. 81",fora:"Venc. 82",grupo:"OF"},
-  {id:95,rodada:"Oitavas",data:"07/07",hora:"2026-07-07T17:00",casa:"Venc. 86",fora:"Venc. 88",grupo:"OF"},
-  {id:96,rodada:"Oitavas",data:"07/07",hora:"2026-07-07T21:00",casa:"Venc. 85",fora:"Venc. 87",grupo:"OF"},
-  // ═══════════ QUARTAS DE FINAL ═══════════
-  {id:97, rodada:"Quartas",data:"09/07",hora:"2026-07-09T21:00",casa:"Venc. 89",fora:"Venc. 90",grupo:"QF"},
-  {id:98, rodada:"Quartas",data:"10/07",hora:"2026-07-10T16:00",casa:"Venc. 93",fora:"Venc. 94",grupo:"QF"},
-  {id:99, rodada:"Quartas",data:"11/07",hora:"2026-07-11T18:00",casa:"Venc. 91",fora:"Venc. 92",grupo:"QF"},
+  {id:93,rodada:"Oitavas",data:"06/07",hora:"2026-07-06T16:00",casa:"Venc. 84",fora:"Venc. 83",grupo:"OF"},
+  {id:94,rodada:"Oitavas",data:"06/07",hora:"2026-07-06T21:00",casa:"Venc. 82",fora:"Venc. 81",grupo:"OF"},
+  {id:95,rodada:"Oitavas",data:"07/07",hora:"2026-07-07T17:00",casa:"Venc. 86",fora:"Venc. 87",grupo:"OF"},
+  {id:96,rodada:"Oitavas",data:"07/07",hora:"2026-07-07T21:00",casa:"Venc. 85",fora:"Venc. 88",grupo:"OF"},
+  // ═══════════ QUARTAS ═══════════
+  {id:97, rodada:"Quartas",data:"09/07",hora:"2026-07-09T21:00",casa:"Venc. 90",fora:"Venc. 89",grupo:"QF"},
+  {id:98, rodada:"Quartas",data:"10/07",hora:"2026-07-10T21:00",casa:"Venc. 91",fora:"Venc. 92",grupo:"QF"},
+  {id:99, rodada:"Quartas",data:"11/07",hora:"2026-07-11T18:00",casa:"Venc. 93",fora:"Venc. 94",grupo:"QF"},
   {id:100,rodada:"Quartas",data:"11/07",hora:"2026-07-11T22:00",casa:"Venc. 95",fora:"Venc. 96",grupo:"QF"},
   // ═══════════ SEMIFINAIS ═══════════
   {id:101,rodada:"Semifinal",data:"14/07",hora:"2026-07-14T16:00",casa:"Venc. 97",fora:"Venc. 98",grupo:"SF"},
   {id:102,rodada:"Semifinal",data:"15/07",hora:"2026-07-15T16:00",casa:"Venc. 99",fora:"Venc. 100",grupo:"SF"},
-  // ═══════════ DISPUTA 3º LUGAR ═══════════
+  // ═══════════ 3º LUGAR ═══════════
   {id:103,rodada:"3º Lugar",data:"18/07",hora:"2026-07-18T17:00",casa:"Perd. 101",fora:"Perd. 102",grupo:"3L"},
   // ═══════════ FINAL ═══════════
   {id:104,rodada:"Final",data:"19/07",hora:"2026-07-19T17:00",casa:"Venc. 101",fora:"Venc. 102",grupo:"FINAL"},
 ];
+
+// Mapa de avanço do mata-mata: qual vencedor/perdedor alimenta cada vaga
+// formato: { jogoId: { casa:[tipo, jogoOrigem], fora:[tipo, jogoOrigem] } }
+// tipo: "V" = vencedor, "P" = perdedor
+export const AVANCO = {
+  89:{casa:["V",75],fora:["V",78]}, 90:{casa:["V",73],fora:["V",76]},
+  91:{casa:["V",74],fora:["V",77]}, 92:{casa:["V",79],fora:["V",80]},
+  93:{casa:["V",84],fora:["V",83]}, 94:{casa:["V",82],fora:["V",81]},
+  95:{casa:["V",86],fora:["V",87]}, 96:{casa:["V",85],fora:["V",88]},
+  97:{casa:["V",90],fora:["V",89]}, 98:{casa:["V",91],fora:["V",92]},
+  99:{casa:["V",93],fora:["V",94]}, 100:{casa:["V",95],fora:["V",96]},
+  101:{casa:["V",97],fora:["V",98]},102:{casa:["V",99],fora:["V",100]},
+  103:{casa:["P",101],fora:["P",102]},104:{casa:["V",101],fora:["V",102]},
+};
 
 export const MULTIPLICADORES = {"Grupos":1,"16-avos":2,"Oitavas":3,"Quartas":4,"Semifinal":5,"3º Lugar":3,"Final":6};
 

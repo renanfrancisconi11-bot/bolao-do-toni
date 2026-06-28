@@ -53,7 +53,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .select-input{width:100%;padding:13px 16px;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;appearance:none;outline:none;transition:border-color .2s;cursor:pointer;}
 .select-input:focus{border-color:var(--accent);}
 .error-msg{color:var(--red);font-size:13px;margin:-8px 0;}
-.sucesso-msg{color:var(--green);font-size:13px;font-weight:600;}
 .sucesso-banner{background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);border-radius:var(--radius);padding:12px 16px;color:var(--green);font-weight:600;font-size:14px;margin-bottom:20px;}
 .section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
 .section-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:1.5px;color:var(--text);}
@@ -111,6 +110,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .placar-input{width:44px;height:44px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:20px;font-weight:700;text-align:center;outline:none;transition:border-color .2s;}
 .placar-input:focus{border-color:var(--accent);background:var(--bg);}
 .placar-x{color:var(--text3);font-size:14px;font-weight:600;}
+.jogo-aguarda{margin-top:10px;text-align:center;font-size:12px;color:var(--text3);background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;padding:8px;}
 .jogo-resultado-admin{display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
 .admin-label{font-size:12px;color:var(--text3);margin-right:4px;}
 .placar-admin{width:40px;height:36px;font-size:16px;border-color:rgba(255,152,0,.4);}
@@ -138,11 +138,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .admin-item-btn:hover{background:rgba(255,68,68,.2);}
 .admin-item-btn.reset{background:rgba(245,208,0,.1);color:var(--accent);border-color:rgba(245,208,0,.25);}
 .admin-item-btn.reset:hover{background:rgba(245,208,0,.2);}
-.footer{border-top:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;color:var(--text3);font-size:13px;}
-.admin-badge{color:var(--orange);cursor:pointer;font-size:12px;background:rgba(255,152,0,.1);padding:2px 8px;border-radius:100px;}
-.admin-badge:hover{background:rgba(255,152,0,.2);}
-.senha-hint{font-size:12px;color:var(--text3);margin-top:-4px;}
-@media (max-width:600px){.hide-mobile{display:none;}.ranking-header{grid-template-columns:50px 1fr 70px;}.ranking-row{grid-template-columns:50px 1fr 70px;}.hero-podium{display:none;}.hero-title{font-size:58px;}.jogo-time{font-size:12px;}}
 .palpites-todos{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
 .btn-ver-palpites{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;}
 .btn-ver-palpites:hover{color:var(--accent);border-color:rgba(245,208,0,.4);background:rgba(245,208,0,.06);}
@@ -156,4 +151,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .palpite-pts{font-family:'DM Mono',monospace;font-size:12px;font-weight:700;padding:1px 7px;border-radius:100px;}
 .palpite-pts.pos{background:rgba(0,200,83,.15);color:var(--green);}
 .palpite-pts.zero{background:rgba(255,68,68,.12);color:var(--red);}
-.jogo-incompleto{font-size:11px;font-weight:600;color:var(--orange);background:rgba(255,152,0,.12);border:1px solid rgba(255,152,0,.3);padding:2px 8px;border-radius:100px;}
+.footer{border-top:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;color:var(--text3);font-size:13px;}
+.admin-badge{color:var(--orange);cursor:pointer;font-size:12px;background:rgba(255,152,0,.1);padding:2px 8px;border-radius:100px;}
+.admin-badge:hover{background:rgba(255,152,0,.2);}
+.senha-hint{font-size:12px;color:var(--text3);margin-top:-4px;}
+@media (max-width:600px){.hide-mobile{display:none;}.ranking-header{grid-template-columns:50px 1fr 70px;}.ranking-row{grid-template-columns:50px 1fr 70px;}.hero-podium{display:none;}.hero-title{font-size:58px;}.jogo-time{font-size:12px;}}

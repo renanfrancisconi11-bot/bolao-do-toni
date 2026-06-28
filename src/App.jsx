@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import logo from "./logo.png";
-import { PARTICIPANTES as PB, SENHAS as SB, JOGOS, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
+import { PARTICIPANTES as PB, SENHAS as SB, JOGOS, AVANCO, MULTIPLICADORES, calcularPontos, podeApostar, tempoRestante } from "./jogos";
 import { salvarPalpiteDB, carregarPalpitesDB, salvarResultadoDB, carregarResultadosDB, salvarSenhaDB, carregarSenhasDB, resetarSenhaDB, carregarExtrasDB, adicionarExtraDB, removerExtraDB, supabase } from "./supabase";
 import "./App.css";
 
@@ -10,12 +10,58 @@ const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{retu
 const getParts=(extras)=>[...PB,...(extras||[]).map(x=>x.nome)];
 const icon=r=>({Grupos:"⚽","16-avos":"🎯",Oitavas:"⚡",Quartas:"🔥",Semifinal:"💥","3º Lugar":"🥉",Final:"🏆"}[r]||"⚽");
 
+// ── AUTOMAÇÃO DO MATA-MATA ─────────────────────────────────────────────
+// Calcula o vencedor/perdedor de um jogo a partir do resultado.
+// Retorna o nome do time, ou null se ainda não há resultado / empate sem definição.
+function vencedorDe(jogoId, resultados, nomesResolvidos){
+  const r=resultados[jogoId];
+  const jogo=JOGOS.find(j=>j.id===jogoId);
+  if(!r||r.casa===""||r.fora===""||!jogo)return {V:null,P:null};
+  // nome real dos times deste jogo (pode já ter vindo da automação)
+  const nomeCasa=nomesResolvidos[jogoId]?.casa ?? jogo.casa;
+  const nomeFora=nomesResolvidos[jogoId]?.fora ?? jogo.fora;
+  const c=parseInt(r.casa), f=parseInt(r.fora);
+  if(isNaN(c)||isNaN(f))return {V:null,P:null};
+  if(c>f)return {V:nomeCasa,P:nomeFora};
+  if(f>c)return {V:nomeFora,P:nomeCasa};
+  // empate: no mata-mata vai pra pênaltis — não dá pra saber automático.
+  // deixa indefinido (admin preenche o vencedor manualmente se quiser via resultado).
+  return {V:null,P:null,empate:true};
+}
+
+// Resolve os nomes reais de TODOS os jogos do mata-mata em cascata.
+// Retorna { jogoId: {casa, fora} } só para os jogos que têm nome definido.
+function resolverChaveamento(resultados){
+  const nomes={}; // jogoId -> {casa, fora}
+  // processa em ordem de id (jogos anteriores primeiro, cascateia pra frente)
+  const idsMata=Object.keys(AVANCO).map(Number).sort((a,b)=>a-b);
+  idsMata.forEach(id=>{
+    const regra=AVANCO[id];
+    const resolveLado=(lado)=>{
+      const [tipo, origem]=regra[lado];
+      const vp=vencedorDe(origem, resultados, nomes);
+      return tipo==="V"?vp.V:vp.P;
+    };
+    const casa=resolveLado("casa");
+    const fora=resolveLado("fora");
+    if(casa||fora)nomes[id]={casa:casa||null, fora:fora||null};
+  });
+  return nomes;
+}
+// Aplica os nomes resolvidos sobre a lista de JOGOS (para exibição)
+function jogosComNomes(nomes){
+  return JOGOS.map(j=>{
+    const n=nomes[j.id];
+    if(!n)return j;
+    return {...j, casa:n.casa||j.casa, fora:n.fora||j.fora};
+  });
+}
+
 function getRanking(pal,res,extras){
   return getParts(extras).map(nome=>{
     let total=0,exatos=0,acertos=0,palpitou=0;
     JOGOS.forEach(j=>{
       const p=pal[nome]?.[j.id];
-      // conta se fez palpite válido neste jogo
       if(p&&p.casa!==""&&p.fora!=="")palpitou++;
       const r=res[j.id];
       if(!p||!r)return;
@@ -26,7 +72,7 @@ function getRanking(pal,res,extras){
     });
     return {nome,total,exatos,acertos,palpitou};
   })
-  .filter(x=>x.palpitou>0) // só quem fez ao menos 1 palpite aparece
+  .filter(x=>x.palpitou>0)
   .sort((a,b)=>b.total-a.total||b.exatos-a.exatos||a.nome.localeCompare(b.nome));
 }
 
@@ -137,9 +183,9 @@ function RankingView({ranking,resultados,carregando}){
   </div>);
 }
 
-function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView,senhasDB}){
+function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setResultados,setView,senhasDB,jogosResolvidos}){
   const rodadasUnicas=[...new Set(JOGOS.map(j=>j.rodada))];
-  const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({}),[verPalpites,setVerPalpites]=useState({}),[verEncerrados,setVerEncerrados]=useState(false);
+  const [rf,setRf]=useState("Grupos"),[salvando,setSalvando]=useState({}),[verPalpites,setVerPalpites]=useState({});
   const temCustom=!!senhasDB[participante];
   const my=palpites[participante]||{};
   const tot=JOGOS.filter(j=>{const p=my[j.id];return p&&p.casa!==""&&p.fora!=="";}).length;
@@ -176,13 +222,12 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
     <div className="progress-bar"><div className="progress-fill" style={{width:`${(tot/JOGOS.length)*100}%`}}/></div>
     <div className="rodada-tabs">{rodadasUnicas.map(r=><button key={r} className={`rodada-tab ${rf===r?"active":""}`} onClick={()=>setRf(r)}>{icon(r)} {r}</button>)}</div>
     <div className="jogos-list">
-      {(()=>{
-      const temResultado=j=>{const r=resultados[j.id];return !!(r&&r.casa!==""&&r.fora!=="");};
-      const renderJogo=j=>{
+      {jogosResolvidos.filter(j=>j.rodada===rf).map(j=>{
         const p=my[j.id]||{casa:"",fora:""},r=resultados[j.id];
         const pts=r?calcularPontos(p.casa,p.fora,r.casa,r.fora,j.rodada):null;
         const pode=podeApostar(j.hora),tempo=tempoRestante(j.hora),preen=p.casa!==""&&p.fora!=="";
         const st=salvando[j.id];
+        const indefinido=j.casa.startsWith("Venc.")||j.casa.startsWith("Perd.")||j.fora.startsWith("Venc.")||j.fora.startsWith("Perd.");
         return (<div key={j.id} className={`jogo-card ${preen?"filled":""} ${!pode?"locked":""} ${pts!==null?`result-${pts>0?"hit":"miss"}`:""}`}>
           <div className="jogo-meta"><span className="jogo-data">{j.data}{j.hora?` · ${j.hora.slice(11,16)}h`:""}</span><span className="jogo-grupo">{j.grupo}</span>
             {!pode&&!r&&<span className="jogo-locked">🔒 Encerrado</span>}{pode&&tempo&&<span className="jogo-tempo">⏱ {tempo}</span>}
@@ -191,18 +236,18 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
           </div>
           <div className="jogo-body"><span className="jogo-time jogo-casa">{j.casa}</span>
             <div className="jogo-placar">
-              <input className="placar-input" type="text" inputMode="numeric" maxLength={2} value={p.casa} onChange={e=>hp(j.id,"casa",e.target.value,j.hora)} placeholder="–" disabled={!pode}/>
+              <input className="placar-input" type="text" inputMode="numeric" maxLength={2} value={p.casa} onChange={e=>hp(j.id,"casa",e.target.value,j.hora)} placeholder="–" disabled={!pode||indefinido}/>
               <span className="placar-x">×</span>
-              <input className="placar-input" type="text" inputMode="numeric" maxLength={2} value={p.fora} onChange={e=>hp(j.id,"fora",e.target.value,j.hora)} placeholder="–" disabled={!pode}/>
+              <input className="placar-input" type="text" inputMode="numeric" maxLength={2} value={p.fora} onChange={e=>hp(j.id,"fora",e.target.value,j.hora)} placeholder="–" disabled={!pode||indefinido}/>
             </div><span className="jogo-time jogo-fora">{j.fora}</span>
           </div>
+          {indefinido&&pode&&<div className="jogo-aguarda">⏳ Aguardando definição dos times</div>}
           {isAdmin&&<div className="jogo-resultado-admin"><span className="admin-label">⚙️ Resultado oficial:</span>
             <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2} value={r?.casa??""} onChange={e=>hr(j.id,"casa",e.target.value)} placeholder="–"/>
             <span className="placar-x">×</span>
             <input className="placar-input placar-admin" type="text" inputMode="numeric" maxLength={2} value={r?.fora??""} onChange={e=>hr(j.id,"fora",e.target.value)} placeholder="–"/>
           </div>}
           {!pode&&(()=>{
-            // Jogo travado: mostra palpites de todos (dropdown)
             const lista=Object.keys(palpites)
               .map(nome=>{
                 const pp=palpites[nome]?.[j.id];
@@ -228,23 +273,7 @@ function PalpitesView({participante,palpites,setPalpites,resultados,isAdmin,setR
             </div>);
           })()}
         </div>);
-      };
-      const jogosRodada=JOGOS.filter(j=>j.rodada===rf);
-      if(rf!=="Grupos")return jogosRodada.map(renderJogo);
-      const encerrados=jogosRodada.filter(temResultado);
-      const abertos=jogosRodada.filter(j=>!temResultado(j));
-      const ptsEnc=encerrados.reduce((acc,j)=>{const p=my[j.id],r=resultados[j.id];const pts=(p&&p.casa!==""&&p.fora!=="")?calcularPontos(p.casa,p.fora,r.casa,r.fora,j.rodada):null;return acc+(pts||0);},0);
-      return (<>
-        {encerrados.length>0&&<div style={{marginBottom:12}}>
-          <button onClick={()=>setVerEncerrados(v=>!v)} style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"13px 18px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,color:"#e5e7eb",fontSize:15,fontWeight:600,cursor:"pointer"}}>
-            <span>{verEncerrados?"▾":"▸"} Jogos encerrados ({encerrados.length})</span>
-            <span style={{color:"#4ade80",fontWeight:700}}>{ptsEnc} pts</span>
-          </button>
-          {verEncerrados&&<div style={{marginTop:12}}>{encerrados.map(renderJogo)}</div>}
-        </div>}
-        {abertos.map(renderJogo)}
-      </>);
-      })()}
+      })}
     </div>
   </div>);
 }
@@ -325,6 +354,9 @@ export default function App(){
   const [showAdmin,setShowAdmin]=useState(false);
   const [clicks,setClicks]=useState(0);
   const ranking=getRanking(palpites,resultados,extras);
+  // AUTOMAÇÃO: resolve os nomes do mata-mata com base nos resultados
+  const nomesResolvidos=resolverChaveamento(resultados);
+  const jogosResolvidos=jogosComNomes(nomesResolvidos);
 
   useEffect(()=>{
     let ativo=true;
@@ -356,7 +388,7 @@ export default function App(){
       {view==="trocar-senha"&&<TrocarSenha setView={setView} participante={participante} senhasDB={senhasDB} setSenhasDB={setSenhasDB} extras={extras}/>}
       {view==="ranking"&&<RankingView ranking={ranking} resultados={resultados} carregando={carregando}/>}
       {view==="admin-panel"&&isAdmin&&<AdminPanel setView={setView} senhasDB={senhasDB} setSenhasDB={setSenhasDB} extras={extras} setExtras={setExtras}/>}
-      {(view==="palpites"&&participante)&&<PalpitesView participante={participante} palpites={palpites} setPalpites={setPalpites} resultados={resultados} isAdmin={isAdmin} setResultados={setResultados} setView={setView} senhasDB={senhasDB}/>}
+      {(view==="palpites"&&participante)&&<PalpitesView participante={participante} palpites={palpites} setPalpites={setPalpites} resultados={resultados} isAdmin={isAdmin} setResultados={setResultados} setView={setView} senhasDB={senhasDB} jogosResolvidos={jogosResolvidos}/>}
       {(view==="palpites"&&!participante)&&<LoginView setParticipante={setParticipante} setView={setView} participante={participante} senhasDB={senhasDB} extras={extras}/>}
     </main>
     <footer className="footer">
