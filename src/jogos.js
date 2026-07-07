@@ -120,11 +120,11 @@ export const JOGOS = [
   {id:93,rodada:"Oitavas",data:"06/07",hora:"2026-07-06T16:00",casa:"Venc. 84",fora:"Venc. 83",grupo:"OF"},
   {id:94,rodada:"Oitavas",data:"06/07",hora:"2026-07-06T21:00",casa:"Venc. 82",fora:"Venc. 81",grupo:"OF"},
   {id:95,rodada:"Oitavas",data:"07/07",hora:"2026-07-07T17:00",casa:"Venc. 86",fora:"Venc. 87",grupo:"OF"},
-  {id:96,rodada:"Oitavas",data:"07/07",hora:"2026-07-07T21:00",casa:"Venc. 85",fora:"Venc. 88",grupo:"OF"},
+  {id:96,rodada:"Oitavas",data:"07/07",hora:"2026-07-07T17:00",casa:"Venc. 85",fora:"Venc. 88",grupo:"OF"},
   // ═══════════ QUARTAS ═══════════
-  {id:97, rodada:"Quartas",data:"09/07",hora:"2026-07-09T21:00",casa:"Venc. 90",fora:"Venc. 89",grupo:"QF"},
-  {id:98, rodada:"Quartas",data:"10/07",hora:"2026-07-10T21:00",casa:"Venc. 91",fora:"Venc. 92",grupo:"QF"},
-  {id:99, rodada:"Quartas",data:"11/07",hora:"2026-07-11T18:00",casa:"Venc. 93",fora:"Venc. 94",grupo:"QF"},
+  {id:97, rodada:"Quartas",data:"09/07",hora:"2026-07-09T17:00",casa:"Venc. 90",fora:"Venc. 89",grupo:"QF"},
+  {id:99, rodada:"Quartas",data:"10/07",hora:"2026-07-10T16:00",casa:"Venc. 93",fora:"Venc. 94",grupo:"QF"},
+  {id:98, rodada:"Quartas",data:"11/07",hora:"2026-07-11T18:00",casa:"Venc. 91",fora:"Venc. 92",grupo:"QF"},
   {id:100,rodada:"Quartas",data:"11/07",hora:"2026-07-11T22:00",casa:"Venc. 95",fora:"Venc. 96",grupo:"QF"},
   // ═══════════ SEMIFINAIS ═══════════
   {id:101,rodada:"Semifinal",data:"14/07",hora:"2026-07-14T16:00",casa:"Venc. 97",fora:"Venc. 98",grupo:"SF"},
@@ -132,7 +132,7 @@ export const JOGOS = [
   // ═══════════ 3º LUGAR ═══════════
   {id:103,rodada:"3º Lugar",data:"18/07",hora:"2026-07-18T17:00",casa:"Perd. 101",fora:"Perd. 102",grupo:"3L"},
   // ═══════════ FINAL ═══════════
-  {id:104,rodada:"Final",data:"19/07",hora:"2026-07-19T17:00",casa:"Venc. 101",fora:"Venc. 102",grupo:"FINAL"},
+  {id:104,rodada:"Final",data:"19/07",hora:"2026-07-19T16:00",casa:"Venc. 101",fora:"Venc. 102",grupo:"FINAL"},
 ];
 
 // Mapa de avanço do mata-mata: qual vencedor/perdedor alimenta cada vaga
