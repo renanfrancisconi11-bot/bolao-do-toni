@@ -127,8 +127,8 @@ export const JOGOS = [
   {id:98, rodada:"Quartas",data:"11/07",hora:"2026-07-11T18:00",casa:"Venc. 91",fora:"Venc. 92",grupo:"QF"},
   {id:100,rodada:"Quartas",data:"11/07",hora:"2026-07-11T22:00",casa:"Venc. 95",fora:"Venc. 96",grupo:"QF"},
   // ═══════════ SEMIFINAIS ═══════════
-  {id:101,rodada:"Semifinal",data:"14/07",hora:"2026-07-14T16:00",casa:"Venc. 97",fora:"Venc. 98",grupo:"SF"},
-  {id:102,rodada:"Semifinal",data:"15/07",hora:"2026-07-15T16:00",casa:"Venc. 99",fora:"Venc. 100",grupo:"SF"},
+  {id:101,rodada:"Semifinal",data:"14/07",hora:"2026-07-14T16:00",casa:"Venc. 97",fora:"Venc. 99",grupo:"SF"},
+  {id:102,rodada:"Semifinal",data:"15/07",hora:"2026-07-15T16:00",casa:"Venc. 98",fora:"Venc. 100",grupo:"SF"},
   // ═══════════ 3º LUGAR ═══════════
   {id:103,rodada:"3º Lugar",data:"18/07",hora:"2026-07-18T17:00",casa:"Perd. 101",fora:"Perd. 102",grupo:"3L"},
   // ═══════════ FINAL ═══════════
@@ -145,7 +145,7 @@ export const AVANCO = {
   95:{casa:["V",86],fora:["V",87]}, 96:{casa:["V",85],fora:["V",88]},
   97:{casa:["V",90],fora:["V",89]}, 98:{casa:["V",91],fora:["V",92]},
   99:{casa:["V",93],fora:["V",94]}, 100:{casa:["V",95],fora:["V",96]},
-  101:{casa:["V",97],fora:["V",98]},102:{casa:["V",99],fora:["V",100]},
+  101:{casa:["V",97],fora:["V",99]},102:{casa:["V",98],fora:["V",100]},
   103:{casa:["P",101],fora:["P",102]},104:{casa:["V",101],fora:["V",102]},
 };
 
