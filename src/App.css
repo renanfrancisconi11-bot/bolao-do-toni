@@ -163,3 +163,84 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .avancou-btn:hover{border-color:var(--accent);color:var(--text);}
 .avancou-btn.ativo{background:rgba(245,208,0,.18);border-color:var(--accent);color:var(--accent);}
 .avancou-btn.limpar{background:rgba(255,68,68,.1);color:var(--red);border-color:rgba(255,68,68,.25);padding:6px 10px;}
+
+/* ============================================================
+   BUTECO DO TONI - abas do futebol semanal
+   ============================================================ */
+.bdt-nav{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none;}
+.bdt-nav::-webkit-scrollbar{display:none;}
+.bdt-nav-btn{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--bg2);
+  border:1px solid var(--border);color:var(--text2);padding:8px 14px;border-radius:999px;
+  font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s;}
+.bdt-nav-btn:hover{border-color:var(--border2);color:var(--text);}
+.bdt-nav-btn.active{background:var(--gold);border-color:var(--gold);color:#071a0e;}
+.bdt-nav-ico{font-size:.95rem;}
+
+.bdt-vazio{padding:38px 16px;text-align:center;color:var(--text3);font-size:.92rem;}
+.bdt-nota{margin-top:14px;padding:10px 12px;background:var(--bg2);border-left:3px solid var(--border2);
+  border-radius:6px;color:var(--text3);font-size:.78rem;line-height:1.5;}
+.bdt-sub{margin:26px 0 10px;color:var(--text);font-size:1rem;font-weight:800;}
+.bdt-busca{width:100%;margin-bottom:14px;}
+.bdt-card-estatico{cursor:default;}
+.bdt-card-estatico:hover{transform:none;}
+
+.bdt-alerta{margin-bottom:12px;padding:11px 13px;background:rgba(255,152,0,.12);
+  border:1px solid rgba(255,152,0,.4);border-radius:8px;color:var(--orange);
+  font-size:.82rem;line-height:1.5;}
+.bdt-alerta-info{background:rgba(0,200,83,.1);border-color:rgba(0,200,83,.35);color:var(--green);}
+
+/* semanas + hall */
+.bdt-semanas{display:flex;flex-direction:column;gap:10px;}
+.bdt-semana{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.bdt-semana-topo{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.bdt-semana-num{font-weight:800;color:var(--gold);font-size:.9rem;letter-spacing:.4px;}
+.bdt-semana-data{color:var(--text3);font-size:.78rem;}
+.bdt-semana-lista{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;}
+.bdt-destaque{display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;
+  background:var(--bg3);border:1px solid var(--border);font-size:.8rem;}
+.bdt-destaque-rot{font-weight:800;color:var(--text3);font-size:.72rem;text-transform:uppercase;}
+.bdt-destaque-nome{color:var(--text);font-weight:700;}
+.bdt-destaque-pts{color:var(--text3);font-size:.75rem;}
+.bdt-destaque.d1{border-color:var(--gold);background:rgba(245,208,0,.1);}
+.bdt-destaque.d1 .bdt-destaque-rot{color:var(--gold);}
+.bdt-destaque.d2{border-color:var(--border2);}
+.bdt-destaque.d3{border-color:var(--border2);}
+.bdt-destaque.dx{border-color:rgba(255,68,68,.45);background:rgba(255,68,68,.08);}
+.bdt-destaque.dx .bdt-destaque-rot{color:var(--red);}
+.bdt-destaque.ds{border-color:rgba(0,200,83,.35);background:rgba(0,200,83,.07);}
+.bdt-destaque.ds .bdt-destaque-rot{color:var(--green);}
+
+/* hall da fama */
+.bdt-titulos{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+.bdt-titulo-chip{padding:6px 12px;border-radius:999px;background:var(--bg2);
+  border:1px solid var(--border);color:var(--text2);font-size:.8rem;}
+.bdt-titulo-chip strong{color:var(--gold);}
+
+/* importar */
+.bdt-drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:38px 20px;
+  background:var(--bg2);border:2px dashed var(--border2);border-radius:var(--radius-lg);
+  cursor:pointer;text-align:center;transition:.15s;}
+.bdt-drop:hover{border-color:var(--gold);background:var(--bg3);}
+.bdt-drop-ico{font-size:2.2rem;}
+.bdt-drop-txt{color:var(--text);font-weight:800;font-size:.95rem;}
+.bdt-drop-sub{color:var(--text3);font-size:.8rem;}
+
+/* caixa */
+.bdt-ok{color:var(--green);}
+.bdt-pend{color:var(--text3);}
+
+@media(max-width:600px){
+  .ranking-header,.ranking-row{font-size:.78rem;}
+  .bdt-nav{padding:0 12px 10px;}
+}
+
+/* Tabelas agora tem numero variavel de colunas -> flex em vez de grid fixo */
+.ranking-table{overflow-x:auto;}
+.ranking-header,.ranking-row{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;
+  min-width:100%;width:max-content;}
+.ranking-header>span,.ranking-row>span{flex:0 0 66px;text-align:right;}
+.ranking-header>span:first-child,.ranking-row>span:first-child{flex:0 0 46px;text-align:left;}
+.rank-name{flex:1 1 150px;min-width:150px;text-align:left;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ranking-header>.rank-name{flex:1 1 150px;}
