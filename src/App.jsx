@@ -17,6 +17,7 @@ const ABAS = [
   { id: "semanas",  rotulo: "Semanas",      icone: "📅" },
   { id: "uniformes",rotulo: "Uniformes",    icone: "👕" },
   { id: "hall",     rotulo: "Hall da Fama", icone: "⭐" },
+  { id: "pagar",    rotulo: "Pagar",        icone: "💸" },
 ];
 
 const brl = (v) =>
@@ -160,22 +161,62 @@ function Home({ dados, setAba, setView, segredo }) {
   const art = oculto ? null : ano?.artilharia?.[0];
   const ir = (a) => { setAba(a); setView("secao"); };
 
+  // A última noite jogada é a manchete do site.
+  const ultima = ano?.semanas?.length ? ano.semanas[ano.semanas.length - 1] : null;
+  const acha = (rot) => ultima?.destaques?.find((d) => d.rotulo === rot)?.nome || null;
+  const abacaxi = acha("Abacaxi");
+  const separou = acha("Separou");
+  const podio = ["1º", "2º", "3º"].map((r) => ({ rot: r, nome: acha(r) })).filter((x) => x.nome);
+
   return (
     <section className="hero">
       <div className="hero-bg"><div className="hero-orb hero-orb-1" /><div className="hero-orb hero-orb-2" /></div>
       <div className="hero-content">
-        <span className="hero-badge">{anoAtual ? `TEMPORADA ${anoAtual}` : "BUTECO DO TONI"}</span>
-        <h1 className="hero-title">
+        <span className="hero-badge anim anim-1">{anoAtual ? `TEMPORADA ${anoAtual}` : "BUTECO DO TONI"}</span>
+        <h1 className="hero-title anim anim-1">
           TONI <span className="hero-title-accent">BALLON&apos;DOR</span>
         </h1>
-        <p className="hero-sub">
+        <p className="hero-sub anim anim-2">
           {ano
-            ? `${ano.ranking.length} jogadores · ${ano.semanas.length} semanas disputadas`
+            ? `${ano.ranking.length ? ano.ranking.length + " jogadores · " : ""}${ano.semanas.length} noites jogadas`
             : "Nenhuma planilha importada ainda."}
         </p>
 
+        {ultima && (
+          <div className="noite anim anim-2">
+            <div className="noite-esq">
+              <div className="noite-topo">
+                <span className="noite-eyebrow">Última noite</span>
+                <span className="noite-num">{String(ultima.numero).padStart(2, "0")}</span>
+                <span className="noite-data">{ultima.data}</span>
+              </div>
+              <div className="noite-lista">
+                {podio.map((p, i) => (
+                  <div key={p.rot} className="noite-linha">
+                    <span className="noite-pos">{medalha(i)}</span>
+                    <span className="noite-nome">{p.nome}</span>
+                  </div>
+                ))}
+                {podio.length === 0 && <span className="card-sub">Sem destaques lançados nessa noite.</span>}
+              </div>
+            </div>
+            {abacaxi && (
+              <div className="noite-dir">
+                <span className="noite-abacaxi-ico">🍍</span>
+                <div>
+                  <div className="noite-abacaxi-rot">Abacaxi</div>
+                  <div className="noite-abacaxi-nome">{abacaxi}</div>
+                </div>
+              </div>
+            )}
+            {separou && (
+              <div className="noite-sep">Times separados por <strong>{separou}</strong></div>
+            )}
+          </div>
+        )}
+
         {oculto && (
-          <div className="hero-podium hero-podium-lock">
+          <div className="hero-podium hero-podium-lock anim anim-3">
             <span className="bdt-trancado-ico">🔒</span>
             <span className="bdt-trancado-tit">Classificação em segredo</span>
             <span className="bdt-trancado-sub">Só na festa de fim de ano.</span>
@@ -183,7 +224,7 @@ function Home({ dados, setAba, setView, segredo }) {
         )}
 
         {top3.length > 0 && (
-          <div className="hero-podium">
+          <div className="hero-podium anim anim-3">
             {top3.map((p, i) => (
               <div key={p.nome} className="podium-item">
                 <span className="podium-medal">{medalha(i)}</span>
@@ -194,7 +235,7 @@ function Home({ dados, setAba, setView, segredo }) {
           </div>
         )}
 
-        <div className="hero-grid">
+        <div className="hero-grid anim anim-3">
           <div className="card" onClick={() => ir("ranking")}>
             <span className="card-icon">🏆</span>
             <span className="card-title">Ranking</span>
@@ -214,6 +255,11 @@ function Home({ dados, setAba, setView, segredo }) {
             <span className="card-icon">⭐</span>
             <span className="card-title">Hall da Fama</span>
             <span className="card-sub">Campeões desde 2018</span>
+          </div>
+          <div className="card" onClick={() => ir("pagar")}>
+            <span className="card-icon">💸</span>
+            <span className="card-title">Pagar</span>
+            <span className="card-sub">Anuidade via PIX</span>
           </div>
         </div>
       </div>
@@ -422,6 +468,156 @@ function HallView({ dados, segredo }) {
         O sistema de pontos mudou em 2024 (era 20/10/5, virou 5/3/2) — não dá para comparar
         pontuação entre as épocas.
       </p>
+    </Secao>
+  );
+}
+
+// ============================================================
+// PAGAR — pagina publica de PIX.
+// Nao mostra quem pagou e quem nao pagou: so a chave e o valor.
+// Tudo aqui e configurado pelo admin, nada vem da planilha.
+// ============================================================
+function PagarView({ pix }) {
+  const [copiado, setCopiado] = useState("");
+
+  const copiar = async (texto, qual) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch {
+      const t = document.createElement("textarea");
+      t.value = texto; document.body.appendChild(t); t.select();
+      document.execCommand("copy"); document.body.removeChild(t);
+    }
+    setCopiado(qual);
+    setTimeout(() => setCopiado(""), 2200);
+  };
+
+  const temAlgo = pix?.chave || pix?.qr || pix?.codigo;
+
+  return (
+    <Secao titulo="💸 Pagar" sub="Anuidade do Buteco do Toni">
+      {!temAlgo ? (
+        <Vazio>O admin ainda não cadastrou os dados de pagamento.</Vazio>
+      ) : (
+        <div className="pix-wrap">
+          <div className="pix-qr">
+            {pix.qr ? (
+              <img className="pix-qr-img" src={pix.qr} alt="QR Code do PIX" />
+            ) : (
+              <div className="pix-qr-vazio">
+                <span style={{ fontSize: 30 }}>📱</span>
+                <span>Sem QR Code. Use a chave ao lado.</span>
+              </div>
+            )}
+            {pix.valor && (
+              <div style={{ textAlign: "center" }}>
+                <div className="pix-valor-rot">Valor</div>
+                <div className="pix-valor">{pix.valor}</div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            {pix.chave && (
+              <div className="pix-bloco">
+                <span className="bdt-label">Chave PIX</span>
+                <div className="pix-chave">{pix.chave}</div>
+                <button className="btn-primary" onClick={() => copiar(pix.chave, "chave")}>
+                  Copiar chave
+                </button>
+                {copiado === "chave" && <span className="pix-copiado">Copiado</span>}
+              </div>
+            )}
+
+            {pix.codigo && (
+              <div className="pix-bloco">
+                <span className="bdt-label">PIX copia e cola</span>
+                <div className="pix-chave">{pix.codigo.slice(0, 90)}{pix.codigo.length > 90 ? "…" : ""}</div>
+                <button className="btn-secondary" onClick={() => copiar(pix.codigo, "codigo")}>
+                  Copiar código
+                </button>
+                {copiado === "codigo" && <span className="pix-copiado">Copiado</span>}
+              </div>
+            )}
+
+            {pix.obs && (
+              <div className="pix-bloco">
+                <span className="bdt-label">Observações</span>
+                <div className="pix-obs">{pix.obs}</div>
+              </div>
+            )}
+
+            <p className="bdt-nota">
+              Depois de pagar, mande o comprovante para o organizador. Esta página não registra
+              pagamento — quem controla isso é a planilha.
+            </p>
+          </div>
+        </div>
+      )}
+    </Secao>
+  );
+}
+
+function PixForm({ pix, salvarPix, setView, ocupado }) {
+  const [f, setF] = useState({ chave: "", valor: "", codigo: "", obs: "", qr: "", ...(pix || {}) });
+  const [erro, setErro] = useState("");
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  const lerImagem = (file) => {
+    if (!file) return;
+    if (file.size > 400000) { setErro("Imagem muito grande. Use uma abaixo de 400 KB."); return; }
+    const r = new FileReader();
+    r.onload = () => { setErro(""); setF((a) => ({ ...a, qr: r.result })); };
+    r.readAsDataURL(file);
+  };
+
+  return (
+    <Secao titulo="💸 Dados de pagamento" sub="Aparece na aba Pagar, para todo mundo">
+      {erro && <div className="error-msg">{erro}</div>}
+      <div className="bdt-form">
+        <div>
+          <span className="bdt-label">Chave PIX</span>
+          <input className="bdt-campo" value={f.chave} onChange={set("chave")}
+            placeholder="CPF, celular, e-mail ou chave aleatória" />
+        </div>
+        <div>
+          <span className="bdt-label">Valor</span>
+          <input className="bdt-campo" value={f.valor} onChange={set("valor")} placeholder="R$ 250,00" />
+        </div>
+        <div>
+          <span className="bdt-label">PIX copia e cola (opcional)</span>
+          <textarea className="bdt-campo" value={f.codigo} onChange={set("codigo")}
+            placeholder="Cole aqui o código que o banco gera" />
+        </div>
+        <div>
+          <span className="bdt-label">Observações (opcional)</span>
+          <textarea className="bdt-campo" value={f.obs} onChange={set("obs")}
+            placeholder="Ex: mande o comprovante no grupo" />
+        </div>
+        <div>
+          <span className="bdt-label">QR Code (opcional)</span>
+          <label className="bdt-drop">
+            <span className="bdt-drop-ico">{f.qr ? "✅" : "🖼️"}</span>
+            <span className="bdt-drop-txt">{f.qr ? "Trocar imagem" : "Escolher imagem do QR"}</span>
+            <span className="bdt-drop-sub">Salve o QR pelo app do banco. Até 400 KB.</span>
+            <input type="file" accept="image/*" style={{ display: "none" }}
+              onChange={(e) => lerImagem(e.target.files[0])} />
+          </label>
+          {f.qr && (
+            <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
+              <img src={f.qr} alt="Prévia" style={{ width: 84, height: 84, objectFit: "contain",
+                background: "#fff", borderRadius: 8, padding: 5 }} />
+              <button className="btn-secondary" onClick={() => setF({ ...f, qr: "" })}>Remover</button>
+            </div>
+          )}
+        </div>
+        <div className="hero-actions">
+          <button className="btn-primary" disabled={ocupado} onClick={() => salvarPix(f)}>
+            {ocupado ? "Salvando..." : "Salvar"}
+          </button>
+          <button className="btn-secondary" onClick={() => setView("admin")}>Voltar</button>
+        </div>
+      </div>
     </Secao>
   );
 }
@@ -677,6 +873,11 @@ function AdminPanel({ setView, dados, liberado, anoSecreto, vazando, alternarSeg
           <span className="card-title">Caixa</span>
           <span className="card-sub">Mensalidades e saídas</span>
         </div>
+        <div className="card" onClick={() => setView("pix")}>
+          <span className="card-icon">💸</span>
+          <span className="card-title">Dados do PIX</span>
+          <span className="card-sub">Chave, valor e QR da aba Pagar</span>
+        </div>
       </div>
 
       {anoAlvo && vazando > 0 && (
@@ -810,11 +1011,13 @@ export default function App() {
       const { publico, secreto: novoSecreto } = dividirSegredo(completo, alvo);
       const e1 = await salvarDadosDB(publico);
       const e2 = await salvarSecretoDB(novoSecreto);
-      const e3 = await salvarConfigDB({ liberado: !esconder });
+      // preserva o resto da config (dados do PIX) em vez de sobrescrever
+      const novaConfig = { ...(config || {}), liberado: !esconder };
+      const e3 = await salvarConfigDB(novaConfig);
       if (e1 || e2 || e3) { window.alert("Erro ao salvar: " + (e1 || e2 || e3)); return; }
       setDados({ ...publico, atualizadoEm: dados?.atualizadoEm });
       setSecreto(novoSecreto);
-      setConfig({ liberado: !esconder });
+      setConfig(novaConfig);
     } finally {
       setOcupado(false);
     }
@@ -826,6 +1029,17 @@ export default function App() {
     if (n >= 5) { setToques(0); setView(isAdmin ? "admin" : "admin-login"); }
     setTimeout(() => setToques(0), 3000);
   };
+
+  async function salvarPix(pix) {
+    setOcupado(true);
+    try {
+      const novaConfig = { ...(config || {}), pix };
+      const e = await salvarConfigDB(novaConfig);
+      if (e) { window.alert("Erro ao salvar: " + e); return; }
+      setConfig(novaConfig);
+      setView("admin");
+    } finally { setOcupado(false); }
+  }
 
   const aoImportar = (pub, sec, fin) => {
     setDados({ ...pub, atualizadoEm: new Date().toISOString() });
@@ -842,7 +1056,9 @@ export default function App() {
       <main className="main">
         {carregando && <Vazio>Carregando...</Vazio>}
 
-        {semDados && view !== "importar" && view !== "admin-login" && view !== "admin" && (
+        {semDados && view === "secao" && aba === "pagar" && <PagarView pix={config?.pix} />}
+
+        {semDados && aba !== "pagar" && view !== "importar" && view !== "admin-login" && view !== "admin" && (
           <Secao titulo="Nada importado ainda" sub="O site fica vazio até a primeira planilha subir.">
             <p className="bdt-nota">
               Se você é o admin: toque 5 vezes no troféu no rodapé, entre e use “Importar planilha”.
@@ -866,6 +1082,7 @@ export default function App() {
             {aba === "semanas" && <SemanasView dados={dadosVisiveis} ano={ano} setAno={setAno} />}
             {aba === "uniformes" && <UniformesView dados={dadosVisiveis} />}
             {aba === "hall" && <HallView dados={dadosVisiveis} segredo={segredo} />}
+            {aba === "pagar" && <PagarView pix={config?.pix} />}
           </>
         )}
 
@@ -873,6 +1090,7 @@ export default function App() {
         {view === "admin" && isAdmin && <AdminPanel setView={setView} dados={dados} liberado={liberado} anoSecreto={anoSecreto} vazando={vazando} alternarSegredo={alternarSegredo} ocupado={ocupado} />}
         {view === "importar" && isAdmin && <ImportarView setView={setView} aoImportar={aoImportar} anosOcultos={anosOcultos} />}
         {view === "caixa" && isAdmin && <CaixaView financeiro={financeiro} setView={setView} />}
+        {view === "pix" && isAdmin && <PixForm pix={config?.pix} salvarPix={salvarPix} setView={setView} ocupado={ocupado} />}
       </main>
 
       <footer className="footer">
