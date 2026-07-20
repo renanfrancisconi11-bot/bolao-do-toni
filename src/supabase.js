@@ -6,11 +6,14 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ============================================================
 // Tabela: bdt_dados  (id TEXT, conteudo JSONB, atualizado_em)
-//   id = "publico"    -> ranking, artilharia, menos vazado, semanas, uniformes, hall
-//   id = "financeiro" -> caixa/mensalidades (so carregado dentro do painel admin)
+//   id = "publico"    -> o que TODO MUNDO ve (semanas, uniformes, hall, anos liberados)
+//   id = "secreto"    -> ranking/artilharia/menos vazado do ano em segredo
+//   id = "financeiro" -> caixa/mensalidades
+//   id = "config"     -> { anosOcultos: [2026] }
+// As linhas "secreto" e "financeiro" so sao baixadas dentro do painel do admin.
 // ============================================================
 
-async function ler(id) {
+export async function lerDoc(id) {
   const { data, error } = await supabase
     .from("bdt_dados").select("conteudo, atualizado_em").eq("id", id).maybeSingle();
   if (error) { console.warn(`Erro ao carregar "${id}":`, error.message); return null; }
@@ -18,14 +21,18 @@ async function ler(id) {
   return { ...data.conteudo, atualizadoEm: data.atualizado_em };
 }
 
-async function gravar(id, conteudo) {
+export async function gravarDoc(id, conteudo) {
   const { error } = await supabase.from("bdt_dados")
     .upsert({ id, conteudo, atualizado_em: new Date().toISOString() }, { onConflict: "id" });
   if (error) { console.warn(`Erro ao salvar "${id}":`, error.message); return error.message; }
   return null;
 }
 
-export const carregarDadosDB      = () => ler("publico");
-export const carregarFinanceiroDB = () => ler("financeiro");
-export const salvarDadosDB        = (c) => gravar("publico", c);
-export const salvarFinanceiroDB   = (c) => gravar("financeiro", c);
+export const carregarDadosDB      = () => lerDoc("publico");
+export const carregarSecretoDB    = () => lerDoc("secreto");
+export const carregarFinanceiroDB = () => lerDoc("financeiro");
+export const carregarConfigDB     = () => lerDoc("config");
+export const salvarDadosDB        = (c) => gravarDoc("publico", c);
+export const salvarSecretoDB      = (c) => gravarDoc("secreto", c);
+export const salvarFinanceiroDB   = (c) => gravarDoc("financeiro", c);
+export const salvarConfigDB       = (c) => gravarDoc("config", c);
