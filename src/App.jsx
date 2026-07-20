@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import "./App.css";
 import logo from "./logo.png";
 import {
-  carregarDadosDB, carregarFinanceiroDB, salvarDadosDB, salvarFinanceiroDB, supabase,
+  carregarDadosDB, carregarSecretoDB, carregarFinanceiroDB, carregarConfigDB,
+  salvarDadosDB, salvarSecretoDB, salvarFinanceiroDB, salvarConfigDB, supabase,
 } from "./supabase";
 import { lerPlanilha } from "./planilha";
 
@@ -24,6 +25,65 @@ const brl = (v) =>
     : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const medalha = (i) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "");
+
+// ============================================================
+// SEGREDO: separa o que o grupo pode ver do que so o admin ve.
+// O ranking/artilharia/menos vazado dos anos ocultos NAO entram
+// no pacote publico - eles nem sao baixados por quem nao e admin.
+// A aba Semanas continua aberta.
+// ============================================================
+function montarHall(anos) {
+  return Object.values(anos)
+    .sort((a, b) => b.ano - a.ano)
+    .map((a) => ({ ano: a.ano, podio: (a.ranking || []).slice(0, 3).map((p) => ({ nome: p.nome, pontos: p.pontos })) }))
+    .filter((h) => h.podio.length > 0);
+}
+
+export function dividirSegredo(dados, anosOcultos) {
+  const ocultos = (anosOcultos || []).map(Number);
+  const publico = { ...dados, anos: {}, anosOcultos: ocultos };
+  const secreto = { anos: {} };
+  delete publico.financeiro;
+
+  Object.values(dados.anos).forEach((a) => {
+    if (ocultos.includes(a.ano)) {
+      publico.anos[a.ano] = {
+        ano: a.ano, aba: a.aba, oculto: true,
+        ranking: [], artilharia: [], menosVazado: [], semanas: a.semanas,
+      };
+      secreto.anos[a.ano] = {
+        ano: a.ano, ranking: a.ranking, artilharia: a.artilharia, menosVazado: a.menosVazado,
+      };
+    } else {
+      publico.anos[a.ano] = a;
+    }
+  });
+
+  publico.hallDaFama = montarHall(publico.anos);
+  return { publico, secreto, financeiro: dados.financeiro };
+}
+
+// Junta o secreto de volta (usado pelo admin e no botao "liberar")
+function juntarSegredo(publico, secreto) {
+  if (!publico || !secreto || !secreto.anos) return publico;
+  const anos = { ...publico.anos };
+  Object.values(secreto.anos).forEach((s) => {
+    if (anos[s.ano]) anos[s.ano] = { ...anos[s.ano], ...s, oculto: false };
+  });
+  return { ...publico, anos, anosOcultos: [], hallDaFama: montarHall(anos) };
+}
+
+function Trancado({ ano }) {
+  return (
+    <div className="bdt-trancado">
+      <span className="bdt-trancado-ico">🔒</span>
+      <span className="bdt-trancado-tit">Segredo até a festa</span>
+      <span className="bdt-trancado-sub">
+        A classificação de {ano} só é revelada na festa de fim de ano.
+      </span>
+    </div>
+  );
+}
 
 // ============================================================
 // PECAS REUTILIZAVEIS
@@ -94,8 +154,9 @@ function Header({ aba, setAba, setView }) {
 function Home({ dados, setAba, setView }) {
   const anoAtual = dados?.anosDetalhados?.[0];
   const ano = anoAtual ? dados.anos[anoAtual] : null;
-  const top3 = ano ? ano.ranking.slice(0, 3) : [];
-  const art = ano?.artilharia?.[0];
+  const oculto = !!ano?.oculto;
+  const top3 = ano && !oculto ? ano.ranking.slice(0, 3) : [];
+  const art = oculto ? null : ano?.artilharia?.[0];
   const ir = (a) => { setAba(a); setView("secao"); };
 
   return (
@@ -111,6 +172,14 @@ function Home({ dados, setAba, setView }) {
             ? `${ano.ranking.length} jogadores · ${ano.semanas.length} semanas disputadas`
             : "Nenhuma planilha importada ainda."}
         </p>
+
+        {oculto && (
+          <div className="hero-podium hero-podium-lock">
+            <span className="bdt-trancado-ico">🔒</span>
+            <span className="bdt-trancado-tit">Classificação em segredo</span>
+            <span className="bdt-trancado-sub">Só na festa de fim de ano.</span>
+          </div>
+        )}
 
         {top3.length > 0 && (
           <div className="hero-podium">
@@ -128,12 +197,12 @@ function Home({ dados, setAba, setView }) {
           <div className="card" onClick={() => ir("ranking")}>
             <span className="card-icon">🏆</span>
             <span className="card-title">Ranking</span>
-            <span className="card-sub">Classificação da temporada</span>
+            <span className="card-sub">{oculto ? "🔒 Segredo até a festa" : "Classificação da temporada"}</span>
           </div>
           <div className="card" onClick={() => ir("artilharia")}>
             <span className="card-icon">⚽</span>
             <span className="card-title">Artilharia</span>
-            <span className="card-sub">{art ? `${art.nome} · ${art.gols} gols` : "Goleadores"}</span>
+            <span className="card-sub">{oculto ? "🔒 Segredo até a festa" : (art ? `${art.nome} · ${art.gols} gols` : "Goleadores")}</span>
           </div>
           <div className="card" onClick={() => ir("semanas")}>
             <span className="card-icon">📅</span>
@@ -157,9 +226,9 @@ function Home({ dados, setAba, setView }) {
 function RankingView({ dados, ano, setAno }) {
   const a = dados?.anos?.[ano];
   return (
-    <Secao titulo="🏆 Ranking" sub={a ? `Toni Ballon'Dor ${ano} · ${a.ranking.length} jogadores` : ""}>
+    <Secao titulo="🏆 Ranking" sub={a && !a.oculto ? `Toni Ballon'Dor ${ano} · ${a.ranking.length} jogadores` : ""}>
       <SeletorAno anos={dados?.anosDetalhados} ano={ano} setAno={setAno} />
-      {!a ? <Vazio>Sem dados para {ano}.</Vazio> : (
+      {a?.oculto ? <Trancado ano={ano} /> : !a ? <Vazio>Sem dados para {ano}.</Vazio> : (
         <div className="ranking-table">
           <div className="ranking-header">
             <span>#</span><span>Jogador</span><span>V / D</span><span>J</span><span>Pts</span>
@@ -188,7 +257,7 @@ function ListaGols({ dados, ano, setAno, campo, titulo, sub, rotuloGols, mostrar
   return (
     <Secao titulo={titulo} sub={sub}>
       <SeletorAno anos={dados?.anosDetalhados} ano={ano} setAno={setAno} />
-      {lista.length === 0 ? <Vazio>Sem dados de {titulo.toLowerCase()} para {ano}.</Vazio> : (
+      {a?.oculto ? <Trancado ano={ano} /> : lista.length === 0 ? <Vazio>Sem dados de {titulo.toLowerCase()} para {ano}.</Vazio> : (
         <div className="ranking-table">
           <div className="ranking-header">
             <span>#</span><span>Jogador</span>
@@ -207,7 +276,7 @@ function ListaGols({ dados, ano, setAno, campo, titulo, sub, rotuloGols, mostrar
           ))}
         </div>
       )}
-      {mostrarMedia && lista.length > 0 && (
+      {mostrarMedia && lista.length > 0 && !a?.oculto && (
         <p className="bdt-nota">
           A planilha ordena esta lista do jeito que está lá. Quem jogou pouco aparece bem colocado
           com poucos gols sofridos — olhe a coluna de jogos antes de tirar conclusão.
@@ -433,7 +502,7 @@ function CaixaView({ financeiro, setView }) {
 // ============================================================
 // IMPORTAR PLANILHA (SO ADMIN)
 // ============================================================
-function ImportarView({ setView, aoImportar }) {
+function ImportarView({ setView, aoImportar, anosOcultos }) {
   const [etapa, setEtapa] = useState("escolher"); // escolher | lendo | conferir | salvando | pronto
   const [erro, setErro] = useState("");
   const [previa, setPrevia] = useState(null);
@@ -460,11 +529,12 @@ function ImportarView({ setView, aoImportar }) {
 
   async function publicar() {
     setEtapa("salvando");
-    const { financeiro, ...publico } = previa;
+    const { publico, secreto, financeiro } = dividirSegredo(previa, anosOcultos);
     const e1 = await salvarDadosDB(publico);
-    const e2 = await salvarFinanceiroDB(financeiro);
-    if (e1 || e2) { setErro("Erro ao salvar: " + (e1 || e2)); setEtapa("conferir"); return; }
-    aoImportar(publico, financeiro);
+    const e2 = await salvarSecretoDB(secreto);
+    const e3 = await salvarFinanceiroDB(financeiro);
+    if (e1 || e2 || e3) { setErro("Erro ao salvar: " + (e1 || e2 || e3)); setEtapa("conferir"); return; }
+    aoImportar(publico, secreto, financeiro);
     setEtapa("pronto");
   }
 
@@ -509,6 +579,13 @@ function ImportarView({ setView, aoImportar }) {
             Confira antes de publicar. Se algum número estiver estranho, cancele — provavelmente
             a estrutura da planilha mudou.
           </div>
+
+          {(anosOcultos || []).length > 0 && (
+            <div className="bdt-alerta">
+              🔒 Ranking, artilharia e menos vazado de {anosOcultos.join(", ")} vão para a área
+              secreta — o grupo não recebe esses números. A aba Semanas continua aberta.
+            </div>
+          )}
 
           {previa.avisos.map((a, i) => <div key={i} className="bdt-alerta">⚠️ {a}</div>)}
 
@@ -579,7 +656,9 @@ function AdminLogin({ setIsAdmin, setView }) {
   );
 }
 
-function AdminPanel({ setView, dados }) {
+function AdminPanel({ setView, dados, anosOcultos, alternarSegredo, ocupado }) {
+  const anoAlvo = dados?.anosDetalhados?.[0];
+  const oculto = (anosOcultos || []).map(Number).includes(Number(anoAlvo));
   return (
     <Secao titulo="⚙️ Painel do admin" sub={dados?.atualizadoEm ? `Última importação: ${new Date(dados.atualizadoEm).toLocaleString("pt-BR")}` : "Nada importado ainda"}>
       <div className="hero-grid">
@@ -594,6 +673,31 @@ function AdminPanel({ setView, dados }) {
           <span className="card-sub">Mensalidades e saídas</span>
         </div>
       </div>
+
+      {anoAlvo && (
+        <div className={`bdt-segredo ${oculto ? "fechado" : "aberto"}`}>
+          <div className="bdt-segredo-txt">
+            <span className="bdt-segredo-tit">{oculto ? "🔒" : "🔓"} Classificação {anoAlvo}</span>
+            <span className="bdt-segredo-sub">
+              {oculto
+                ? "Ranking, artilharia e menos vazado escondidos do grupo. Só a aba Semanas está aberta."
+                : "LIBERADO — todo mundo está vendo a pontuação de " + anoAlvo + "."}
+            </span>
+          </div>
+          <button
+            className={oculto ? "btn-primary" : "btn-secondary"}
+            disabled={ocupado}
+            onClick={() => {
+              const msg = oculto
+                ? `Liberar a classificação de ${anoAlvo} para TODO o grupo? Isso revela a pontuação na hora.`
+                : `Esconder de novo a classificação de ${anoAlvo}?`;
+              if (window.confirm(msg)) alternarSegredo(!oculto);
+            }}
+          >
+            {ocupado ? "Salvando..." : oculto ? "Liberar na festa 🎉" : "Esconder de novo"}
+          </button>
+        </div>
+      )}
       <p className="bdt-nota">
         O financeiro fica numa linha separada do banco e só é baixado aqui dentro — não vai junto
         com os dados que o grupo carrega. Ainda assim, quem souber mexer na API do Supabase
@@ -610,7 +714,10 @@ export default function App() {
   const [view, setView] = useState("home");
   const [aba, setAba] = useState("ranking");
   const [dados, setDados] = useState(null);
+  const [secreto, setSecreto] = useState(null);
+  const [config, setConfig] = useState(null);
   const [financeiro, setFinanceiro] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem(K_ADM) === "true");
   const [ano, setAno] = useState(null);
@@ -619,9 +726,10 @@ export default function App() {
   useEffect(() => {
     let ativo = true;
     async function carregar() {
-      const d = await carregarDadosDB();
+      const [d, c] = await Promise.all([carregarDadosDB(), carregarConfigDB()]);
       if (!ativo) return;
       setDados(d);
+      setConfig(c);
       setCarregando(false);
       setAno((atual) => atual ?? d?.anosDetalhados?.[0] ?? null);
     }
@@ -633,8 +741,41 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin && !financeiro) carregarFinanceiroDB().then((f) => f && setFinanceiro(f));
-  }, [isAdmin, financeiro]);
+    if (!isAdmin) return;
+    if (!financeiro) carregarFinanceiroDB().then((f) => f && setFinanceiro(f));
+    if (!secreto) carregarSecretoDB().then((s) => s && setSecreto(s));
+  }, [isAdmin, financeiro, secreto]);
+
+  // Sem config salva ainda -> esconde o ano mais recente por padrao (falha fechado)
+  const anosOcultos = useMemo(() => {
+    if (config?.anosOcultos) return config.anosOcultos.map(Number);
+    if (Array.isArray(dados?.anosOcultos)) return dados.anosOcultos.map(Number);
+    const topo = dados?.anosDetalhados?.[0];
+    return topo ? [Number(topo)] : [];
+  }, [config, dados]);
+
+  // O admin ve tudo: junta o secreto de volta so na tela dele
+  const dadosVisiveis = useMemo(
+    () => (isAdmin && secreto ? juntarSegredo(dados, secreto) : dados),
+    [isAdmin, secreto, dados]
+  );
+
+  async function alternarSegredo(esconder) {
+    setOcupado(true);
+    try {
+      const completo = juntarSegredo(dados, secreto) || dados;
+      const alvo = esconder ? [Number(dados?.anosDetalhados?.[0])] : [];
+      const { publico, secreto: novoSecreto } = dividirSegredo(completo, alvo);
+      await salvarDadosDB(publico);
+      await salvarSecretoDB(novoSecreto);
+      await salvarConfigDB({ anosOcultos: alvo });
+      setDados({ ...publico, atualizadoEm: dados?.atualizadoEm });
+      setSecreto(novoSecreto);
+      setConfig({ anosOcultos: alvo });
+    } finally {
+      setOcupado(false);
+    }
+  }
 
   const logoClick = () => {
     const n = toques + 1;
@@ -643,8 +784,9 @@ export default function App() {
     setTimeout(() => setToques(0), 3000);
   };
 
-  const aoImportar = (pub, fin) => {
+  const aoImportar = (pub, sec, fin) => {
     setDados({ ...pub, atualizadoEm: new Date().toISOString() });
+    setSecreto(sec);
     setFinanceiro(fin);
     setAno(pub?.anosDetalhados?.[0] ?? null);
   };
@@ -665,28 +807,28 @@ export default function App() {
           </Secao>
         )}
 
-        {!carregando && dados && view === "home" && <Home dados={dados} setAba={setAba} setView={setView} />}
+        {!carregando && dados && view === "home" && <Home dados={dadosVisiveis} setAba={setAba} setView={setView} />}
 
         {!carregando && dados && view === "secao" && (
           <>
-            {aba === "ranking" && <RankingView dados={dados} ano={ano} setAno={setAno} />}
+            {aba === "ranking" && <RankingView dados={dadosVisiveis} ano={ano} setAno={setAno} />}
             {aba === "artilharia" && (
-              <ListaGols dados={dados} ano={ano} setAno={setAno} campo="artilharia"
+              <ListaGols dados={dadosVisiveis} ano={ano} setAno={setAno} campo="artilharia"
                 titulo="⚽ Artilharia" sub={`Goleadores de ${ano}`} rotuloGols="Gols" mostrarMedia={false} />
             )}
             {aba === "vazado" && (
-              <ListaGols dados={dados} ano={ano} setAno={setAno} campo="menosVazado"
+              <ListaGols dados={dadosVisiveis} ano={ano} setAno={setAno} campo="menosVazado"
                 titulo="🧤 Menos Vazado" sub={`Goleiros de ${ano}`} rotuloGols="Sofridos" mostrarMedia />
             )}
-            {aba === "semanas" && <SemanasView dados={dados} ano={ano} setAno={setAno} />}
-            {aba === "uniformes" && <UniformesView dados={dados} />}
-            {aba === "hall" && <HallView dados={dados} />}
+            {aba === "semanas" && <SemanasView dados={dadosVisiveis} ano={ano} setAno={setAno} />}
+            {aba === "uniformes" && <UniformesView dados={dadosVisiveis} />}
+            {aba === "hall" && <HallView dados={dadosVisiveis} />}
           </>
         )}
 
         {view === "admin-login" && <AdminLogin setIsAdmin={setIsAdmin} setView={setView} />}
-        {view === "admin" && isAdmin && <AdminPanel setView={setView} dados={dados} />}
-        {view === "importar" && isAdmin && <ImportarView setView={setView} aoImportar={aoImportar} />}
+        {view === "admin" && isAdmin && <AdminPanel setView={setView} dados={dados} anosOcultos={anosOcultos} alternarSegredo={alternarSegredo} ocupado={ocupado} />}
+        {view === "importar" && isAdmin && <ImportarView setView={setView} aoImportar={aoImportar} anosOcultos={anosOcultos} />}
         {view === "caixa" && isAdmin && <CaixaView financeiro={financeiro} setView={setView} />}
       </main>
 
@@ -698,7 +840,7 @@ export default function App() {
             <>
               <span className="admin-badge" onClick={() => setView("admin")}>⚙️ Admin</span>
               <span className="admin-badge" style={{ marginLeft: 6 }}
-                onClick={() => { localStorage.removeItem(K_ADM); setIsAdmin(false); setFinanceiro(null); setView("home"); }}>
+                onClick={() => { localStorage.removeItem(K_ADM); setIsAdmin(false); setFinanceiro(null); setSecreto(null); setView("home"); }}>
                 Sair
               </span>
             </>
