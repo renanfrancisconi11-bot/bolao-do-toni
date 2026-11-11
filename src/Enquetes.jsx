@@ -85,6 +85,10 @@ export function EnquetesView() {
   const [pinDig, setPinDig] = useState("");
   const [pinErro, setPinErro] = useState("");
   const [conferindo, setConferindo] = useState(false);
+  const [trocando, setTrocando] = useState(false);   // formulário de trocar senha aberto
+  const [novaPin, setNovaPin] = useState("");
+  const [novaPin2, setNovaPin2] = useState("");
+  const [trocaMsg, setTrocaMsg] = useState("");
   const [escolha, setEscolha] = useState({});
   const [enviando, setEnviando] = useState(null);
   const [msg, setMsg] = useState({});
@@ -109,6 +113,19 @@ export function EnquetesView() {
     setEscolha({}); setMsg({}); setQuase(""); setPinDig(""); setPinErro("");
   }
 
+  async function trocarSenha() {
+    setTrocaMsg("");
+    if (novaPin.trim() !== novaPin2.trim()) { setTrocaMsg("As duas senhas não são iguais."); return; }
+    const r = await rpc("bdt_trocar_pin", { p_eleitor: eu, p_pin_atual: pin, p_pin_novo: novaPin.trim() });
+    if (r.erro) { setTrocaMsg("Erro: " + r.erro); return; }
+    if (r.data !== "ok") { setTrocaMsg(r.data); return; }
+    const nova = novaPin.trim();
+    setPin(nova);
+    try { localStorage.setItem(K_PIN, nova); } catch {}
+    setNovaPin(""); setNovaPin2(""); setTrocando(false);
+    setTrocaMsg("✅ Senha trocada! Guarde a nova senha.");
+  }
+
   async function entrar() {
     if (!quase || pinDig.trim() === "") return;
     setConferindo(true); setPinErro("");
@@ -126,6 +143,11 @@ export function EnquetesView() {
     setEnviando(e.id);
     const r = await rpc("bdt_votar", { p_enquete: e.id, p_eleitor: eu, p_candidato: alvo, p_pin: pin });
     setEnviando(null);
+    if (typeof r.data === "string" && r.data.startsWith("Senha errada")) {
+      escolherEu("");
+      window.alert("Sua senha mudou. Entre de novo com a senha atual.");
+      return;
+    }
     const texto = r.erro ? "Erro: " + r.erro : r.data === "ok" ? "✅ Voto registrado!" : r.data;
     setMsg((m) => ({ ...m, [e.id]: texto }));
     carregar();
@@ -146,9 +168,14 @@ export function EnquetesView() {
         {eu ? (
           <div className="enq-eu-linha">
             <span className="enq-eu-nome">👤 {eu}</span>
-            <button className="btn-secondary enq-btn-peq" onClick={() => {
-              if (window.confirm("Trocar o nome? Só faça isso se escolheu errado.")) escolherEu("");
-            }}>Trocar</button>
+            <div className="hero-actions" style={{ flexWrap: "wrap" }}>
+              <button className="btn-secondary enq-btn-peq" onClick={() => { setTrocando(!trocando); setTrocaMsg(""); }}>
+                {trocando ? "Cancelar" : "Trocar senha"}
+              </button>
+              <button className="btn-secondary enq-btn-peq" onClick={() => {
+                if (window.confirm("Sair deste nome? Vai precisar da senha para entrar de novo.")) escolherEu("");
+              }}>Sair</button>
+            </div>
           </div>
         ) : (
           <div className="enq-votar">
@@ -170,7 +197,17 @@ export function EnquetesView() {
             {pinErro && <div className="error-msg">{pinErro}</div>}
           </div>
         )}
-        <p className="enq-aviso">Voto secreto: ninguém vê em quem você votou. Escolha o SEU nome e digite a senha (o número da sua camisa) — cada nome vota uma vez em cada enquete.</p>
+        {eu && trocando && (
+          <div className="enq-votar" style={{ marginTop: 10 }}>
+            <input className="enq-select" type="password" autoComplete="new-password" placeholder="Senha nova (mínimo 4 caracteres)"
+              value={novaPin} onChange={(ev) => setNovaPin(ev.target.value)} />
+            <input className="enq-select" type="password" autoComplete="new-password" placeholder="Repita a senha nova"
+              value={novaPin2} onChange={(ev) => setNovaPin2(ev.target.value)} onKeyDown={(ev) => ev.key === "Enter" && trocarSenha()} />
+            <button className="btn-primary" disabled={!novaPin.trim() || !novaPin2.trim()} onClick={trocarSenha}>Salvar senha nova</button>
+          </div>
+        )}
+        {trocaMsg && <div className="enq-msg" style={{ marginTop: 8 }}>{trocaMsg}</div>}
+        <p className="enq-aviso">Voto secreto: ninguém vê em quem você votou. Escolha o SEU nome e digite a senha (no começo é o número da sua camisa — depois de entrar, troque por uma só sua). Cada nome vota uma vez em cada enquete.</p>
       </div>
 
       <div className="enq-lista">
@@ -260,6 +297,15 @@ export function EnquetesAdmin({ setView }) {
     carregar();
   }
 
+  const [resetNome, setResetNome] = useState("");
+  async function resetarSenha() {
+    if (!resetNome) return;
+    if (!window.confirm(`Voltar a senha de ${resetNome} para o número da camisa?`)) return;
+    const r = await rpc("bdt_admin_resetar_pin", { p_senha: senha, p_eleitor: resetNome });
+    window.alert(r.erro ? "Erro: " + r.erro : r.data === "ok" ? `Pronto: a senha de ${resetNome} voltou a ser o número da camisa.` : r.data);
+    if (!r.erro && r.data === "ok") setResetNome("");
+  }
+
   async function apagarVoto(id, eleitor) {
     if (!window.confirm(`Apagar o voto de ${eleitor}? Ele vai poder votar de novo.`)) return;
     const r = await rpc("bdt_admin_apagar_voto", { p_senha: senha, p_enquete: id, p_eleitor: eleitor });
@@ -291,6 +337,17 @@ export function EnquetesAdmin({ setView }) {
         {voltar}
       </div>
       {erro && <div className="bdt-alerta">{erro}</div>}
+      <div className="enq-eu">
+        <span className="enq-eu-rot">🔑 Voltar senha para o número da camisa</span>
+        <div className="enq-votar">
+          <select className="enq-select" value={resetNome} onChange={(ev) => setResetNome(ev.target.value)}>
+            <option value="">Escolha o nome...</option>
+            {(enquetes?.[0]?.candidatos || []).map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <button className="btn-secondary" disabled={!resetNome} onClick={resetarSenha}>Voltar senha</button>
+        </div>
+        <p className="enq-aviso">Use quando alguém esquecer a senha que criou, ou se alguém trocou a senha no lugar dele.</p>
+      </div>
       <div className="enq-lista">
         {(enquetes || []).map((e) => {
           const linhas = resultado?.[e.id] || [];
