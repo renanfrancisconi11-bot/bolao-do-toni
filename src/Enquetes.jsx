@@ -14,6 +14,8 @@ const encerrou = () => Date.now() > FIM.getTime();
 
 const K_EU = "bdt_enquete_eu2";       // nome que este aparelho escolheu
 const K_PIN = "bdt_enquete_pin2";     // senha (número da camisa) desse nome
+// quem pode ver o resultado (só leitura) direto da tela de votação
+const VE_RESULTADO = ["Eduardo Trevizani"];
 const K_SENHA = "bdt_enquete_senha";  // senha dos votos (só na sessão do admin)
 
 async function rpc(nome, args) {
@@ -89,6 +91,7 @@ export function EnquetesView() {
   const [novaPin, setNovaPin] = useState("");
   const [novaPin2, setNovaPin2] = useState("");
   const [trocaMsg, setTrocaMsg] = useState("");
+  const [verResultado, setVerResultado] = useState(false);
   const [escolha, setEscolha] = useState({});
   const [enviando, setEnviando] = useState(null);
   const [msg, setMsg] = useState({});
@@ -160,6 +163,7 @@ export function EnquetesView() {
     </Casca>
   );
   if (enquetes.length === 0) return <Casca><div className="bdt-vazio">Nenhuma enquete no momento.</div></Casca>;
+  if (verResultado && eu && VE_RESULTADO.includes(eu)) return <EnquetesAdmin leitura onVoltar={() => setVerResultado(false)} />;
 
   return (
     <Casca>
@@ -169,6 +173,9 @@ export function EnquetesView() {
           <div className="enq-eu-linha">
             <span className="enq-eu-nome">👤 {eu}</span>
             <div className="hero-actions" style={{ flexWrap: "wrap" }}>
+              {VE_RESULTADO.includes(eu) && (
+                <button className="btn-primary enq-btn-peq" onClick={() => setVerResultado(true)}>🗳️ Resultado</button>
+              )}
               <button className="btn-secondary enq-btn-peq" onClick={() => { setTrocando(!trocando); setTrocaMsg(""); }}>
                 {trocando ? "Cancelar" : "Trocar senha"}
               </button>
@@ -267,7 +274,7 @@ function Casca({ children, titulo = "🗳️ Enquetes", sub = "Prêmios do ano �
 // ============================================================
 // TELA DO ADMIN
 // ============================================================
-export function EnquetesAdmin({ setView }) {
+export function EnquetesAdmin({ setView, leitura = false, onVoltar }) {
   const { enquetes, votaram, carregar } = useEnquetes();
   const [senha, setSenha] = useState(() => { try { return sessionStorage.getItem(K_SENHA) || ""; } catch { return ""; } });
   const [digitada, setDigitada] = useState("");
@@ -313,7 +320,9 @@ export function EnquetesAdmin({ setView }) {
     carregar();
   }
 
-  const voltar = <button className="btn-secondary" onClick={() => setView("admin")}>Voltar ao painel</button>;
+  const voltar = leitura
+    ? <button className="btn-secondary" onClick={onVoltar}>Voltar para a votação</button>
+    : <button className="btn-secondary" onClick={() => setView("admin")}>Voltar ao painel</button>;
 
   if (!senha) return (
     <Casca titulo="🗳️ Resultado das enquetes" sub="Precisa da senha dos votos (é diferente da senha do admin)">
@@ -329,6 +338,7 @@ export function EnquetesAdmin({ setView }) {
 
   return (
     <Casca titulo="🗳️ Resultado das enquetes" sub="Só você vê isso. O grupo vê apenas quem já votou.">
+      {leitura ? <div className="hero-actions" style={{ marginBottom: 16 }}>{voltar}</div> : (
       <div className="hero-actions" style={{ marginBottom: 16, flexWrap: "wrap" }}>
         <button className="btn-primary" disabled={ocupado}
           onClick={() => acao("*", null, true, "Liberar o resultado das 4 enquetes para TODO o grupo?")}>Liberar todas na festa 🎉</button>
@@ -336,8 +346,9 @@ export function EnquetesAdmin({ setView }) {
           onClick={() => acao("*", false, null, "Encerrar a votação de todas as enquetes?")}>Encerrar todas</button>
         {voltar}
       </div>
+      )}
       {erro && <div className="bdt-alerta">{erro}</div>}
-      <div className="enq-eu">
+      {!leitura && <div className="enq-eu">
         <span className="enq-eu-rot">🔑 Voltar senha para o número da camisa</span>
         <div className="enq-votar">
           <select className="enq-select" value={resetNome} onChange={(ev) => setResetNome(ev.target.value)}>
@@ -347,7 +358,7 @@ export function EnquetesAdmin({ setView }) {
           <button className="btn-secondary" disabled={!resetNome} onClick={resetarSenha}>Voltar senha</button>
         </div>
         <p className="enq-aviso">Use quando alguém esquecer a senha que criou, ou se alguém trocou a senha no lugar dele.</p>
-      </div>
+      </div>}
       <div className="enq-lista">
         {(enquetes || []).map((e) => {
           const linhas = resultado?.[e.id] || [];
@@ -363,7 +374,7 @@ export function EnquetesAdmin({ setView }) {
               </div>
               <span className="card-sub">{total} votos · faltam {faltam.length}</span>
               <Barras linhas={linhas} total={total} />
-              <div className="hero-actions" style={{ marginTop: 12, flexWrap: "wrap" }}>
+              {!leitura && <div className="hero-actions" style={{ marginTop: 12, flexWrap: "wrap" }}>
                 <button className="btn-secondary enq-btn-peq" disabled={ocupado} onClick={() => acao(e.id, !e.aberta, null)}>
                   {e.aberta ? "Encerrar votação" : "Reabrir votação"}
                 </button>
@@ -372,12 +383,14 @@ export function EnquetesAdmin({ setView }) {
                     e.resultado_publico ? null : `Liberar o resultado de "${e.pergunta}" para o grupo?`)}>
                   {e.resultado_publico ? "Esconder resultado" : "Liberar resultado"}
                 </button>
-              </div>
+              </div>}
               <details className="enq-det">
                 <summary>Quem já votou ({quem.length})</summary>
                 <div className="enq-chips">
                   {quem.map((n) => (
-                    <span key={n} className="enq-chip" title="Clique para apagar o voto" onClick={() => apagarVoto(e.id, n)}>{n} ✕</span>
+                    leitura
+                      ? <span key={n} className="enq-chip mudo">{n}</span>
+                      : <span key={n} className="enq-chip" title="Clique para apagar o voto" onClick={() => apagarVoto(e.id, n)}>{n} ✕</span>
                   ))}
                 </div>
               </details>
