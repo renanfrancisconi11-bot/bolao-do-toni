@@ -512,3 +512,48 @@ textarea.bdt-campo{min-height:88px;resize:vertical;line-height:1.55;}
   .hero-title{font-size:42px;}
   .bdt-nav-btn{padding:8px 12px;font-size:12px;}
 }
+
+/* ============================================================
+   ENQUETES
+   ============================================================ */
+.enq-eu{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:18px;}
+.enq-eu-rot{display:block;font-weight:800;margin-bottom:8px;}
+.enq-eu-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.enq-eu-nome{font-weight:800;color:var(--gold);font-size:1.05rem;}
+.enq-aviso{margin-top:10px;color:var(--text3);font-size:.78rem;line-height:1.5;}
+.enq-select{width:100%;min-height:46px;padding:10px 12px;background:var(--bg3);color:var(--text);
+  border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:1rem;}
+.enq-lista{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));}
+.enq-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;
+  display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow);}
+.enq-card.feito{border-color:var(--border2);}
+.enq-card-topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.enq-card-tit{font-family:'Big Shoulders Display',sans-serif;font-weight:800;font-size:1.35rem;flex:1;letter-spacing:.3px;}
+.enq-tag{font-size:.68rem;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:999px;}
+.enq-tag.aberta{background:rgba(37,211,102,.15);color:var(--green);}
+.enq-tag.fechada{background:rgba(255,90,90,.15);color:var(--red);}
+.enq-votar{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.enq-ok{padding:10px 12px;background:rgba(37,211,102,.1);border-radius:var(--radius-sm);color:var(--green);font-weight:700;font-size:.9rem;}
+.enq-vazio{padding:10px 0;color:var(--text3);font-size:.88rem;}
+.enq-msg{font-size:.85rem;font-weight:700;color:var(--text2);}
+.enq-btn-peq{padding:6px 12px !important;font-size:.8rem !important;}
+.enq-barras{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+.enq-barra-topo{display:flex;justify-content:space-between;gap:8px;font-size:.88rem;font-weight:600;}
+.enq-barra.lider .enq-barra-topo{color:var(--gold);font-weight:800;}
+.enq-barra-num{color:var(--text3);font-family:'DM Mono',monospace;font-size:.78rem;white-space:nowrap;}
+.enq-barra-trilho{height:7px;background:var(--bg4);border-radius:999px;overflow:hidden;margin-top:4px;}
+.enq-barra-fill{height:100%;background:var(--border2);border-radius:999px;transition:width .4s;}
+.enq-barra.lider .enq-barra-fill{background:var(--gold);}
+.enq-det summary{cursor:pointer;color:var(--text2);font-size:.85rem;font-weight:700;margin-top:6px;}
+.enq-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.enq-chip{font-size:.75rem;padding:4px 9px;border-radius:999px;background:var(--bg3);border:1px solid var(--border2);cursor:pointer;}
+.enq-chip.mudo{cursor:default;color:var(--text3);border-color:var(--border);}
+
+/* aviso de encerramento (modo só enquete) */
+.enq-encerra{max-width:1100px;margin:18px auto 0;padding:22px var(--pad);text-align:center;
+  background:var(--gold);color:#08190E;border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:6px;
+  margin-left:var(--pad);margin-right:var(--pad);}
+@media(min-width:1140px){.enq-encerra{margin-left:auto;margin-right:auto;}}
+.enq-encerra-ico{font-size:2.4rem;line-height:1;}
+.enq-encerra-tit{font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-size:clamp(1.8rem,7vw,3.2rem);line-height:1.05;letter-spacing:.5px;}
+.enq-encerra-sub{font-weight:700;font-size:clamp(.9rem,3.2vw,1.1rem);}
