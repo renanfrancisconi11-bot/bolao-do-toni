@@ -12,7 +12,8 @@ import { supabase } from "./supabase";
 const FIM = new Date("2026-11-21T23:59:59-03:00");
 const encerrou = () => Date.now() > FIM.getTime();
 
-const K_EU = "bdt_enquete_eu";        // nome que este aparelho escolheu
+const K_EU = "bdt_enquete_eu2";       // nome que este aparelho escolheu
+const K_PIN = "bdt_enquete_pin2";     // senha (número da camisa) desse nome
 const K_SENHA = "bdt_enquete_senha";  // senha dos votos (só na sessão do admin)
 
 async function rpc(nome, args) {
@@ -77,7 +78,13 @@ function Barras({ linhas, total }) {
 // ============================================================
 export function EnquetesView() {
   const { enquetes, votaram, erro, carregar } = useEnquetes();
-  const [eu, setEu] = useState(() => { try { return localStorage.getItem(K_EU) || ""; } catch { return ""; } });
+  const ler = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+  const [eu, setEu] = useState(() => (ler(K_EU) && ler(K_PIN) ? ler(K_EU) : ""));
+  const [pin, setPin] = useState(() => ler(K_PIN));
+  const [quase, setQuase] = useState("");      // nome escolhido, esperando a senha
+  const [pinDig, setPinDig] = useState("");
+  const [pinErro, setPinErro] = useState("");
+  const [conferindo, setConferindo] = useState(false);
   const [escolha, setEscolha] = useState({});
   const [enviando, setEnviando] = useState(null);
   const [msg, setMsg] = useState({});
@@ -93,10 +100,23 @@ export function EnquetesView() {
   const jaVotou = (id, nome) => votaram.some((v) => v.enquete_id === id && v.eleitor === nome);
   const quantos = (id) => votaram.filter((v) => v.enquete_id === id).length;
 
-  function escolherEu(nome) {
-    setEu(nome);
-    try { nome ? localStorage.setItem(K_EU, nome) : localStorage.removeItem(K_EU); } catch {}
-    setEscolha({}); setMsg({});
+  function escolherEu(nome, senha) {
+    setEu(nome); setPin(senha || "");
+    try {
+      if (nome) { localStorage.setItem(K_EU, nome); localStorage.setItem(K_PIN, senha); }
+      else { localStorage.removeItem(K_EU); localStorage.removeItem(K_PIN); }
+    } catch {}
+    setEscolha({}); setMsg({}); setQuase(""); setPinDig(""); setPinErro("");
+  }
+
+  async function entrar() {
+    if (!quase || pinDig.trim() === "") return;
+    setConferindo(true); setPinErro("");
+    const r = await rpc("bdt_conferir_pin", { p_eleitor: quase, p_pin: pinDig.trim() });
+    setConferindo(false);
+    if (r.erro) { setPinErro("Erro: " + r.erro); return; }
+    if (r.data === true) escolherEu(quase, pinDig.trim());
+    else setPinErro("Senha errada. A senha é o número da sua camisa.");
   }
 
   async function votar(e) {
@@ -104,7 +124,7 @@ export function EnquetesView() {
     if (!alvo) return;
     if (!window.confirm(`${e.pergunta}\n\nVotar em ${alvo}?\nDepois de confirmar não dá pra trocar.`)) return;
     setEnviando(e.id);
-    const r = await rpc("bdt_votar", { p_enquete: e.id, p_eleitor: eu, p_candidato: alvo });
+    const r = await rpc("bdt_votar", { p_enquete: e.id, p_eleitor: eu, p_candidato: alvo, p_pin: pin });
     setEnviando(null);
     const texto = r.erro ? "Erro: " + r.erro : r.data === "ok" ? "✅ Voto registrado!" : r.data;
     setMsg((m) => ({ ...m, [e.id]: texto }));
@@ -131,12 +151,26 @@ export function EnquetesView() {
             }}>Trocar</button>
           </div>
         ) : (
-          <select id="enq-eu" className="enq-select" value="" onChange={(ev) => escolherEu(ev.target.value)}>
-            <option value="">Selecione o seu nome...</option>
-            {nomes.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
+          <div className="enq-votar">
+            <select id="enq-eu" className="enq-select" value={quase}
+              onChange={(ev) => { setQuase(ev.target.value); setPinErro(""); }}>
+              <option value="">Selecione o seu nome...</option>
+              {nomes.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+            {quase && (
+              <>
+                <input className="enq-select" type="password" inputMode="numeric" autoComplete="off"
+                  placeholder="Senha: número da sua camisa" value={pinDig}
+                  onChange={(ev) => setPinDig(ev.target.value)} onKeyDown={(ev) => ev.key === "Enter" && entrar()} />
+                <button className="btn-primary" disabled={!pinDig.trim() || conferindo} onClick={entrar}>
+                  {conferindo ? "Conferindo..." : "Entrar"}
+                </button>
+              </>
+            )}
+            {pinErro && <div className="error-msg">{pinErro}</div>}
+          </div>
         )}
-        <p className="enq-aviso">Voto secreto: ninguém vê em quem você votou. Escolha o SEU nome — cada nome vota uma vez em cada enquete.</p>
+        <p className="enq-aviso">Voto secreto: ninguém vê em quem você votou. Escolha o SEU nome e digite a senha (o número da sua camisa) — cada nome vota uma vez em cada enquete.</p>
       </div>
 
       <div className="enq-lista">
