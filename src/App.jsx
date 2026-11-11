@@ -6,9 +6,15 @@ import {
   salvarDadosDB, salvarSecretoDB, salvarFinanceiroDB, salvarConfigDB, supabase,
 } from "./supabase";
 import { lerPlanilha } from "./planilha";
+import { EnquetesView, EnquetesAdmin } from "./Enquetes";
 
 const K_ADM = "bdt_admin";
 const ADMIN_PWD = "bdt2026admin";
+
+// MODO SO ENQUETE: o site mostra apenas a votacao dos premios.
+// Para voltar o site completo, troque true por false.
+const SO_ENQUETE = true;
+const ENCERRAMENTO = "21/11";
 
 const ABAS = [
   { id: "ranking",  rotulo: "Ranking",      icone: "🏆" },
@@ -17,6 +23,7 @@ const ABAS = [
   { id: "semanas",  rotulo: "Semanas",      icone: "📅" },
   { id: "uniformes",rotulo: "Uniformes",    icone: "👕" },
   { id: "hall",     rotulo: "Hall da Fama", icone: "⭐" },
+  { id: "enquetes", rotulo: "Enquetes",     icone: "🗳️" },
   { id: "pagar",    rotulo: "Pagar",        icone: "💸" },
 ];
 
@@ -255,6 +262,11 @@ function Home({ dados, setAba, setView, segredo }) {
             <span className="card-icon">⭐</span>
             <span className="card-title">Hall da Fama</span>
             <span className="card-sub">Campeões desde 2018</span>
+          </div>
+          <div className="card" onClick={() => ir("enquetes")}>
+            <span className="card-icon">🗳️</span>
+            <span className="card-title">Enquetes</span>
+            <span className="card-sub">Vote nos prêmios do ano</span>
           </div>
           <div className="card" onClick={() => ir("pagar")}>
             <span className="card-icon">💸</span>
@@ -878,6 +890,11 @@ function AdminPanel({ setView, dados, liberado, anoSecreto, vazando, alternarSeg
           <span className="card-title">Dados do PIX</span>
           <span className="card-sub">Chave, valor e QR da aba Pagar</span>
         </div>
+        <div className="card" onClick={() => setView("enquetes-admin")}>
+          <span className="card-icon">🗳️</span>
+          <span className="card-title">Enquetes</span>
+          <span className="card-sub">Resultado, encerrar e liberar</span>
+        </div>
       </div>
 
       {anoAlvo && vazando > 0 && (
@@ -1050,6 +1067,58 @@ export default function App() {
 
   const semDados = !carregando && !dados;
 
+  if (SO_ENQUETE) {
+    const telaAdmin = ["admin-login", "admin", "importar", "caixa", "pix", "enquetes-admin"].includes(view);
+    return (
+      <div className="app">
+        <header className="header">
+          <div className="header-inner">
+            <div className="logo" onClick={() => setView("home")}>
+              <img src={logo} alt="BDT" className="logo-img" />
+              <div>
+                <span className="logo-text">BUTECO DO TONI</span>
+                <span className="logo-sub">PRÊMIOS DO ANO</span>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="main">
+          {!telaAdmin && (
+            <>
+              <div className="enq-encerra">
+                <span className="enq-encerra-ico">⏰</span>
+                <span className="enq-encerra-tit">VOTAÇÃO ENCERRA DIA {ENCERRAMENTO}</span>
+                <span className="enq-encerra-sub">Vote até o fim do dia {ENCERRAMENTO}. Depois disso não dá mais pra votar.</span>
+              </div>
+              <EnquetesView />
+            </>
+          )}
+          {view === "admin-login" && <AdminLogin setIsAdmin={setIsAdmin} setView={setView} />}
+          {view === "admin" && isAdmin && <AdminPanel setView={setView} dados={dados} liberado={liberado} anoSecreto={anoSecreto} vazando={vazando} alternarSegredo={alternarSegredo} ocupado={ocupado} />}
+          {view === "importar" && isAdmin && <ImportarView setView={setView} aoImportar={aoImportar} anosOcultos={anosOcultos} />}
+          {view === "caixa" && isAdmin && <CaixaView financeiro={financeiro} setView={setView} />}
+          {view === "enquetes-admin" && isAdmin && <EnquetesAdmin setView={setView} />}
+          {view === "pix" && isAdmin && <PixForm pix={config?.pix} salvarPix={salvarPix} setView={setView} ocupado={ocupado} />}
+        </main>
+        <footer className="footer">
+          <span>
+            Buteco do Toni
+            {isAdmin && (
+              <>
+                <span className="admin-badge" onClick={() => setView("enquetes-admin")}>🗳️ Resultado</span>
+                <span className="admin-badge" style={{ marginLeft: 6 }}
+                  onClick={() => { localStorage.removeItem(K_ADM); setIsAdmin(false); setFinanceiro(null); setSecreto(null); setView("home"); }}>
+                  Sair
+                </span>
+              </>
+            )}
+          </span>
+          <span onClick={logoClick} style={{ cursor: "default", userSelect: "none" }}>🏆</span>
+        </footer>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <Header aba={aba} setAba={setAba} setView={setView} />
@@ -1057,8 +1126,9 @@ export default function App() {
         {carregando && <Vazio>Carregando...</Vazio>}
 
         {semDados && view === "secao" && aba === "pagar" && <PagarView pix={config?.pix} />}
+        {semDados && view === "secao" && aba === "enquetes" && <EnquetesView />}
 
-        {semDados && aba !== "pagar" && view !== "importar" && view !== "admin-login" && view !== "admin" && (
+        {semDados && aba !== "pagar" && aba !== "enquetes" && view !== "importar" && view !== "admin-login" && view !== "admin" && (
           <Secao titulo="Nada importado ainda" sub="O site fica vazio até a primeira planilha subir.">
             <p className="bdt-nota">
               Se você é o admin: toque 5 vezes no troféu no rodapé, entre e use “Importar planilha”.
@@ -1083,6 +1153,7 @@ export default function App() {
             {aba === "uniformes" && <UniformesView dados={dadosVisiveis} />}
             {aba === "hall" && <HallView dados={dadosVisiveis} segredo={segredo} />}
             {aba === "pagar" && <PagarView pix={config?.pix} />}
+            {aba === "enquetes" && <EnquetesView />}
           </>
         )}
 
@@ -1090,6 +1161,7 @@ export default function App() {
         {view === "admin" && isAdmin && <AdminPanel setView={setView} dados={dados} liberado={liberado} anoSecreto={anoSecreto} vazando={vazando} alternarSegredo={alternarSegredo} ocupado={ocupado} />}
         {view === "importar" && isAdmin && <ImportarView setView={setView} aoImportar={aoImportar} anosOcultos={anosOcultos} />}
         {view === "caixa" && isAdmin && <CaixaView financeiro={financeiro} setView={setView} />}
+        {view === "enquetes-admin" && isAdmin && <EnquetesAdmin setView={setView} />}
         {view === "pix" && isAdmin && <PixForm pix={config?.pix} salvarPix={salvarPix} setView={setView} ocupado={ocupado} />}
       </main>
 
