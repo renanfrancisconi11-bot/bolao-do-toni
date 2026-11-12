@@ -15,7 +15,7 @@ const encerrou = () => Date.now() > FIM.getTime();
 const K_EU = "bdt_enquete_eu2";       // nome que este aparelho escolheu
 const K_PIN = "bdt_enquete_pin2";     // senha (número da camisa) desse nome
 // quem pode ver o resultado (só leitura) direto da tela de votação
-const VE_RESULTADO = ["Eduardo Trevizani"];
+const VE_RESULTADO = ["Eduardo Trevizani", "Renan Francisconi"];
 const K_SENHA = "bdt_enquete_senha";  // senha dos votos (só na sessão do admin)
 
 async function rpc(nome, args) {
